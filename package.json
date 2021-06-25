@@ -1,0 +1,28 @@
+{
+  "name": "@ashetm/vue-cli-plugin-component-generator",
+  "description": "Vue component generator for new components",
+  "version": "0.1.1",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AsheTM/vue-cli-plugin-component-generator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AsheTM/vue-cli-plugin-component-generator/issues"
+  },
+  "author": "DAWOUD Haitham <contact@ashetm.com>",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "vue",
+    "components",
+    "cli",
+    "plugin"
+  ],
+  "dependencies": {
+    "prompts": "^2.4.1"
+  },
+  "homepage": "https://github.com/AsheTM/vue-cli-plugin-component-generator#readme"
+}
