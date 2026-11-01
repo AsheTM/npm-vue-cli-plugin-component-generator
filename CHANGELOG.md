@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests run with mocha and chai (`npm test`), and the coverage with c8 (`npm run test:coverage`), instead of the built-in `node:test` runner ([#44](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/44)).
 
 ### Fixed
+- The options of the scripts can be overridden: `npm run g:c -- Card --style less` passes `--style` twice (the script's, then yours), and failed with `--style needs a value`. An option given twice now takes its last value (`--style less`, `--path ui`, `--ts false`). The scripts end with `--style`, so the name after them is never read as the value of `--ts` ([#56](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/56)).
 - The `g:c` shortcut passes the options on: `npm run g:c -- Card --props title` generated `Card` without its props, since the inner `npm run` took `--props` as its own option. The shortcuts are now `npm run generate:component --` and `npm run generate:view --` ([#54](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/54)).
 
 ## [0.2.0] - 2026-11-01

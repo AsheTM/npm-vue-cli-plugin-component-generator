@@ -222,6 +222,22 @@ describe('generate:component', () => {
       expect(generated(dir)).to.deep.equal(['src/components/Card.vue'])
     })
 
+    it('takes the last value of an option given twice (the script\'s, then yours)', async () => {
+      const dir = createVueProject()
+      // vue-cli-service generate:component --path components --style css --ts Card --path ui --style less --ts false
+      await runCommand(dir, { _: ['Card'], path: ['components', 'ui'], style: ['css', 'less'], ts: [true, 'false'] })
+
+      expect(generated(dir)).to.deep.equal(['src/ui/Card.vue'])
+      expect(read(dir, 'src/ui/Card.vue')).to.equal(vuegComponent(3, { name: 'Card', path: 'ui', style: 'less' }))
+    })
+
+    it('reads the name after a flag without value given twice (--ts Card --ts false)', async () => {
+      const dir = createVueProject()
+      await runCommand(dir, { ts: ['Card', 'false'] })
+
+      expect(read(dir, 'src/components/Card.vue')).to.equal(vuegComponent(3, { name: 'Card', path: 'components' }))
+    })
+
     it('reads the name after a flag without value (--blank Card)', async () => {
       const dir = createVueProject()
       await runCommand(dir, { blank: 'Card', 'dry-run': 'false' })

@@ -24,9 +24,9 @@ describe('vue add generator', () => {
     const [{ scripts }] = runGenerator({ path: 'components', style: 'scss', ts: true })
 
     expect(scripts).to.deep.equal({
-      'generate:component': 'vue-cli-service generate:component --style scss --ts',
+      'generate:component': 'vue-cli-service generate:component --ts --style scss',
       'g:c': 'npm run generate:component --',
-      'generate:view': 'vue-cli-service generate:view --style scss --ts',
+      'generate:view': 'vue-cli-service generate:view --ts --style scss',
       'g:v': 'npm run generate:view --'
     })
   })
@@ -112,5 +112,16 @@ describe('vue add generator', () => {
         expect(files['src/views/Contact.vue']).to.include(style).and.match(script)
       })
     }
+
+    it('lets the options of the scripts be overridden', async () => {
+      const [{ scripts }] = runGenerator({ path: 'components/ui', style: 'scss', ts: true })
+      const dir = createVueProject()
+
+      const { args } = commandArgs(`${scripts['generate:component']} Card --path widgets --style less --ts false`)
+      const { output } = await runCommand(dir, args)
+
+      expect(output.error).to.deep.equal([])
+      expect(readTree(dir)['src/widgets/Card.vue']).to.include('<style lang="less" scoped>').and.match(/<script setup>/)
+    })
   })
 })

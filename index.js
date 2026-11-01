@@ -94,14 +94,21 @@ function list(flag, value) {
 // vueg's options from the command line arguments (minimist), and the relative name if given
 function vuegOptions(cmd, args, vue) {
   const { _: names = [], ...allFlags } = args
-  const flags = Object.fromEntries(Object.entries(allFlags).filter(([flag]) => !serviceFlags.includes(flag)))
   const rest = [...names]
+  const flags = {}
+  const isName = (value) => typeof value === 'string' && !/^(true|false)$/.test(value)
 
-  for (const flag of booleanFlags) {
-    if(typeof flags[flag] === 'string' && !/^(true|false)$/.test(flags[flag])) {
-      rest.push(flags[flag])
-      flags[flag] = true
+  for (const [flag, value] of Object.entries(allFlags)) {
+    if(serviceFlags.includes(flag)) {
+      continue
     }
+    // An option given twice is an array: the scripts' options are overridden by the ones after them
+    let values = [].concat(value)
+    if(booleanFlags.includes(flag)) {
+      rest.push(...values.filter(isName))
+      values = values.map((value) => isName(value) ? true : value)
+    }
+    flags[flag] = values[values.length - 1]
   }
 
   const removed = removedFlags.filter((flag) => typeof flags[flag] === 'string')
