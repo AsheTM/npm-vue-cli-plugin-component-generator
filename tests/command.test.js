@@ -72,6 +72,26 @@ describe('generate:component', () => {
     assert.deepEqual(Object.keys(readTree(elsewhere)), ['package.json'])
   })
 
+  for (const name of ['UserCard', 'userCard', 'user-card', 'user_card']) {
+    it(`names the files user-card and the component UserCard for ${name}`, async (t) => {
+      const dir = createProject(t)
+      await runCommand(t, dir, { ...options, _: [`admin/${name}`] })
+
+      const files = readTree(dir)
+      assert.match(files['src/components/admin/user-card/user-card.vue'], /<script src="\.\/user-card\.js"><\/script>/)
+      assert.match(files['src/components/admin/user-card/user-card.html'], /<div class="UserCard">/)
+      assert.match(files['src/components/admin/user-card/user-card.js'], /name: 'UserCardComponent'/)
+      assert.match(files['src/components/admin/user-card/user-card.css'], /\.UserCard\{\}/)
+    })
+  }
+
+  it('keeps acronyms together (HTMLEditor → html-editor, HtmlEditor)', async (t) => {
+    const dir = createProject(t)
+    await runCommand(t, dir, { ...options, _: ['HTMLEditor'] })
+
+    assert.match(readTree(dir)['src/components/html-editor/html-editor.js'], /name: 'HtmlEditorComponent'/)
+  })
+
   it('uses the script and style languages of the options', async (t) => {
     const dir = createProject(t)
     await runCommand(t, dir, { ...options, script: 'ts', style: 'scss' }, ['user-card'])

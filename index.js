@@ -2,6 +2,15 @@ const fs      = require('fs')
 const path    = require('path')
 const prompts = require('prompts')
 
+// Convert a component name to kebab-case for its files: UserCard, userCard, user_card → user-card
+function kebabCase(str) {
+  return str
+    .replace(/([a-z\d])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
+    .replace(/[\s_]+/g, '-')
+    .toLowerCase()
+}
+
 module.exports = api => {
   const cmd = 'generate:component'
 
@@ -41,7 +50,7 @@ module.exports = api => {
 
       fs.mkdirSync(foldersPath, { recursive: true })
 
-      componentName = componentName.toLowerCase()
+      componentName = kebabCase(componentName)
 
       const templatesPath     = path.join(__dirname, 'generator', 'templates')
       const componentDirPath  = path.join(foldersPath, componentName)
