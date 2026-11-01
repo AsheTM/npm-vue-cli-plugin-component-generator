@@ -1,5 +1,7 @@
 const { describe, it } = require('node:test')
 const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
 const { createProject, readTree, runCommand } = require('./support/vue-cli')
 
 const options = { script: 'js', style: 'css', view: 'html', 'root-dir': './src/components' }
@@ -148,6 +150,36 @@ describe('generate:component', () => {
       assert.equal(readTree(dir)[`src/components/user-card/user-card.${script}`], expected)
     })
   }
+
+  describe('existing component', () => {
+    // A generated user-card, with an edited script and a file added by the user
+    async function existingComponent(t) {
+      const dir = createProject(t)
+      await runCommand(t, dir, { ...options, _: ['user-card'] })
+      const folder = path.join(dir, 'src', 'components', 'user-card')
+      fs.writeFileSync(path.join(folder, 'user-card.js'), 'edited')
+      fs.writeFileSync(path.join(folder, 'user-card.spec.js'), 'test')
+      t.mock.method(console, 'warn', () => {})
+      return { dir, folder }
+    }
+
+    it('overwrites only the generated files when confirmed', async (t) => {
+      const { dir, folder } = await existingComponent(t)
+      await runCommand(t, dir, { ...options, _: ['user-card'] }, [true])
+
+      assert.match(fs.readFileSync(path.join(folder, 'user-card.js'), 'utf8'), /name: 'UserCardComponent'/)
+      assert.equal(fs.readFileSync(path.join(folder, 'user-card.spec.js'), 'utf8'), 'test')
+      assert.equal(console.warn.mock.callCount(), 1)
+    })
+
+    it('changes nothing when not confirmed', async (t) => {
+      const { dir, folder } = await existingComponent(t)
+      await runCommand(t, dir, { ...options, _: ['user-card'] }, [false])
+
+      assert.equal(fs.readFileSync(path.join(folder, 'user-card.js'), 'utf8'), 'edited')
+      assert.equal(fs.readFileSync(path.join(folder, 'user-card.spec.js'), 'utf8'), 'test')
+    })
+  })
 
   it('reads Vue from devDependencies too', async (t) => {
     const dir = createProject(t, { devDependencies: { vue: '2.6.14' } })
