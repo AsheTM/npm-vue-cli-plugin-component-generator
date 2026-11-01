@@ -11,6 +11,22 @@ function kebabCase(str) {
     .toLowerCase()
 }
 
+// Error message for an invalid name (optional sub-folders, then a name starting with a letter), undefined if valid
+function validateName(relativeName) {
+  const parts = String(relativeName).split(/\\|\//).filter(Boolean)
+  const name = parts[parts.length - 1]
+
+  if(!name || !name.trim()) {
+    return 'A component name is required'
+  }
+  if(!/^[A-Za-z][\w-]*$/.test(name)) {
+    return `Invalid component name "${name}": letters, digits, - and _ only, starting with a letter`
+  }
+  if(parts.some((part) => part === '.' || part === '..')) {
+    return `Invalid component path "${relativeName}": . and .. are not allowed`
+  }
+}
+
 // Script template for the project: Vue 3 (default), Vue 2, or a Vue 2 class component with vue-property-decorator
 function scriptTemplate(pkg, scriptExtension) {
   const dependencies = { ...pkg.dependencies, ...pkg.devDependencies }
@@ -49,15 +65,27 @@ module.exports = api => {
       const scriptExtension = script
       const styleExtension  = style
 
-      if(!relativeComponentName) {
+      if(relativeComponentName === undefined) {
         ({ relativeComponentName } = await prompts([{
           type: 'text',
           name: 'relativeComponentName',
-          message: 'What\'s your component name?'
+          message: 'What\'s your component name?',
+          validate: (name) => validateName(name) || true
         }]))
+
+        // Cancelled (Ctrl+C, Escape): no answer
+        if(relativeComponentName === undefined) {
+          console.log('Cancelled: no component generated')
+          return
+        }
       }
 
-      const pathFile = relativeComponentName.split(/\\|\//).filter(Boolean)
+      const error = validateName(relativeComponentName)
+      if(error) {
+        throw new Error(error)
+      }
+
+      const pathFile = String(relativeComponentName).split(/\\|\//).filter(Boolean)
 
       let componentName = pathFile[pathFile.length - 1]
       const foldersPath = api.resolve(path.join(rootDir, ...pathFile.slice(0, pathFile.length - 1)))

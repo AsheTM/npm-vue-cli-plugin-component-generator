@@ -181,6 +181,40 @@ describe('generate:component', () => {
     })
   })
 
+  describe('component name', () => {
+    const generated = (dir) => Object.keys(readTree(dir)).filter((file) => file !== 'package.json')
+
+    it('stops quietly when the name prompt is cancelled', async (t) => {
+      const dir = createProject(t)
+      t.mock.method(console, 'log', () => {})
+      await runCommand(t, dir, options, [new Error('cancelled')])
+
+      assert.deepEqual(generated(dir), [])
+      assert.deepEqual(console.log.mock.calls[0].arguments, ['Cancelled: no component generated'])
+    })
+
+    const invalid = [
+      { name: '', error: /A component name is required/ },
+      { name: '   ', error: /A component name is required/ },
+      { name: '/', error: /A component name is required/ },
+      { name: '1card', error: /Invalid component name "1card"/ },
+      { name: 'user card', error: /Invalid component name "user card"/ },
+      { name: 'user.card', error: /Invalid component name "user.card"/ },
+      { name: '../user-card', error: /Invalid component path "..\/user-card"/ },
+      { name: 404, error: /Invalid component name "404"/ }
+    ]
+
+    for (const { name, error } of invalid) {
+      it(`refuses ${JSON.stringify(name)} without generating anything`, async (t) => {
+        const dir = createProject(t)
+
+        await assert.rejects(runCommand(t, dir, options, [name]), error)
+        await assert.rejects(runCommand(t, dir, { ...options, _: [name] }), error)
+        assert.deepEqual(generated(dir), [])
+      })
+    }
+  })
+
   it('reads Vue from devDependencies too', async (t) => {
     const dir = createProject(t, { devDependencies: { vue: '2.6.14' } })
     await runCommand(t, dir, { ...options, _: ['user-card'] })
