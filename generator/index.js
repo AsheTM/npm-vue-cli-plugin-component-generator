@@ -1,29 +1,28 @@
+const { srcFolder } = require('../prompts')
 
 module.exports = (api, options) => {
   const {
-    rootDir,
-    script,
-    style
+    path = 'components',
+    style = 'css',
+    ts = false
   } = options
 
-  // The script language is only asked when TypeScript is installed: JavaScript otherwise
-  const scriptExtensions = { javascript: 'js', typescript: 'ts' }
+  // Quoted when empty or with spaces, to stay one argument of the script (sh and cmd.exe)
+  const quote = (value) => value === '' || /\s/.test(value) ? `"${value}"` : value
 
-  const viewExtension   = 'html'
-  const scriptExtension = scriptExtensions[script] || 'js'
-  const styleExtension  = style || 'css'
+  // The answers, as options of the commands: --style always (vueg 1, for Vue 2, defaults to scss), and last:
+  // it takes a value, so the name after the script isn't read as the value of a flag (--ts Card)
+  const folder = srcFolder(path)
+  const common = `${ts ? ' --ts' : ''} --style ${style}`
+  const componentPath = folder === 'components' ? '' : ` --path ${quote(folder)}`
 
-  // Quoted when it has spaces, to stay one argument of the script (sh and cmd.exe)
-  const rootDirArgument = /\s/.test(rootDir) ? `"${rootDir}"` : rootDir
-
-  const cmd = 'generate:component'
-  const cmdShortcut = 'g:c'
-
-  // Extending package
+  // Extending package; the shortcuts end with --, so the inner npm run passes the options on (npm run g:c -- Card --blank)
   api.extendPackage({
     scripts: {
-      [cmd]: `vue-cli-service ${cmd} --style ${styleExtension} --script ${scriptExtension} --view ${viewExtension} --root-dir ${rootDirArgument}`,
-      [cmdShortcut]: `npm run ${cmd}`
+      'generate:component': `vue-cli-service generate:component${componentPath}${common}`,
+      'g:c': 'npm run generate:component --',
+      'generate:view': `vue-cli-service generate:view${common}`,
+      'g:v': 'npm run generate:view --'
     }
   })
 }

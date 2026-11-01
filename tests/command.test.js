@@ -1,224 +1,352 @@
-const { describe, it } = require('node:test')
-const assert = require('node:assert/strict')
+const { expect } = require('chai')
 const fs = require('node:fs')
 const path = require('node:path')
-const { createProject, readTree, runCommand } = require('./support/vue-cli')
+const { createProject, createVueProject, readTree, runCommand } = require('./support/vue-cli')
 
-const options = { script: 'js', style: 'css', view: 'html', 'root-dir': './src/components' }
+const vueg = { 2: require('vueg-vue2'), 3: require('vueg-vue3') }
+
+// The files generated in src/ (not main.js and App.vue)
+const generated = (dir) => Object.keys(readTree(dir))
+  .filter((file) => file.startsWith('src/') && !['src/main.js', 'src/App.vue'].includes(file))
+  .sort()
+
+const read = (dir, file) => fs.readFileSync(path.join(dir, file), 'utf8')
+
+// The component vueg generates in a new project of this Vue version, with these options
+function vuegComponent(vue, options) {
+  const dir = createVueProject(vue)
+  const log = console.log
+  console.log = () => {}
+  try {
+    return fs.readFileSync(vueg[vue].component({ ...options, cwd: dir }), 'utf8')
+  } finally {
+    console.log = log
+  }
+}
 
 describe('generate:component', () => {
-  it('registers the command with its options', async (t) => {
-    const dir = createProject(t)
-    const command = await runCommand(t, dir, options, ['user-card'])
+  it('registers the command with its options', async () => {
+    const { command } = await runCommand(createVueProject(), { _: ['Card'] })
 
-    assert.equal(command.name, 'generate:component')
-    assert.deepEqual(Object.keys(command.options.options), ['--script', '--style', '--view', '--root-dir'])
-  })
-
-  it('generates the 4 files of the prompted component in its own folder', async (t) => {
-    const dir = createProject(t)
-    await runCommand(t, dir, options, ['user-card'])
-
-    const files = readTree(dir)
-    delete files['package.json']
-    assert.deepEqual(Object.keys(files).sort(), [
-      'src/components/user-card/user-card.css',
-      'src/components/user-card/user-card.html',
-      'src/components/user-card/user-card.js',
-      'src/components/user-card/user-card.vue'
-    ])
-    assert.equal(files['src/components/user-card/user-card.vue'],
-      '\n<template src="./user-card.html"></template>\n\n<script src="./user-card.js"></script>\n\n<style src="./user-card.css"></style>\n')
-    assert.match(files['src/components/user-card/user-card.html'], /<div class="UserCard">/)
-    assert.match(files['src/components/user-card/user-card.js'], /name: 'UserCardComponent'/)
-    assert.match(files['src/components/user-card/user-card.css'], /\.UserCard\{\}/)
-  })
-
-  it('generates the component in a sub-folder of the root directory', async (t) => {
-    const dir = createProject(t)
-    await runCommand(t, dir, options, ['admin/user-card'])
-
-    assert.ok(readTree(dir)['src/components/admin/user-card/user-card.vue'])
-  })
-
-  it('generates the component named on the command line, without prompting', async (t) => {
-    const dir = createProject(t)
-    await runCommand(t, dir, { ...options, _: ['admin/user-card'] })
-
-    assert.deepEqual(Object.keys(readTree(dir)).filter((file) => file.startsWith('src/')).sort(), [
-      'src/components/admin/user-card/user-card.css',
-      'src/components/admin/user-card/user-card.html',
-      'src/components/admin/user-card/user-card.js',
-      'src/components/admin/user-card/user-card.vue'
+    expect(command.name).to.equal('generate:component')
+    expect(command.options.usage).to.equal('vue-cli-service generate:component [options] [name]')
+    expect(Object.keys(command.options.options)).to.deep.equal([
+      '--path', '--style', '--scoped', '--module', '--props', '--emits', '--ts', '--options',
+      '--blank', '--no-template', '--force', '--dry-run'
     ])
   })
 
-  it('works without the options added by vue add (defaults: js, css, html, ./src/components)', async (t) => {
-    const dir = createProject(t)
-    await runCommand(t, dir, { _: ['user-card'] })
+  describe('Vue version', () => {
+    it('generates a single-file Vue 3 component with vueg 2 (<script setup>)', async () => {
+      const dir = createVueProject(3)
+      const { output, exitCode } = await runCommand(dir, { _: ['UserCard'] })
 
-    assert.deepEqual(Object.keys(readTree(dir)).filter((file) => file.startsWith('src/')).sort(), [
-      'src/components/user-card/user-card.css',
-      'src/components/user-card/user-card.html',
-      'src/components/user-card/user-card.js',
-      'src/components/user-card/user-card.vue'
-    ])
-  })
-
-  it('generates in the project, whatever the current directory', async (t) => {
-    const dir = createProject(t)
-    const elsewhere = createProject(t)
-    await runCommand(t, dir, { ...options, _: ['user-card'] }, [], elsewhere)
-
-    assert.ok(readTree(dir)['src/components/user-card/user-card.vue'])
-    assert.deepEqual(Object.keys(readTree(elsewhere)), ['package.json'])
-  })
-
-  for (const name of ['UserCard', 'userCard', 'user-card', 'user_card']) {
-    it(`names the files user-card and the component UserCard for ${name}`, async (t) => {
-      const dir = createProject(t)
-      await runCommand(t, dir, { ...options, _: [`admin/${name}`] })
-
-      const files = readTree(dir)
-      assert.match(files['src/components/admin/user-card/user-card.vue'], /<script src="\.\/user-card\.js"><\/script>/)
-      assert.match(files['src/components/admin/user-card/user-card.html'], /<div class="UserCard">/)
-      assert.match(files['src/components/admin/user-card/user-card.js'], /name: 'UserCardComponent'/)
-      assert.match(files['src/components/admin/user-card/user-card.css'], /\.UserCard\{\}/)
+      expect(generated(dir)).to.deep.equal(['src/components/UserCard.vue'])
+      expect(read(dir, 'src/components/UserCard.vue')).to.equal(vuegComponent(3, { name: 'UserCard', path: 'components' }))
+      expect(read(dir, 'src/components/UserCard.vue')).to.match(/<script setup>/)
+      expect(output.log).to.deep.equal(['> Generating vue component starting', '> Generating vue component success'])
+      expect(exitCode).to.equal(undefined)
     })
-  }
 
-  it('keeps acronyms together (HTMLEditor → html-editor, HtmlEditor)', async (t) => {
-    const dir = createProject(t)
-    await runCommand(t, dir, { ...options, _: ['HTMLEditor'] })
+    it('generates a single-file Vue 2 component with vueg 1 (Options API)', async () => {
+      const dir = createVueProject(2)
+      await runCommand(dir, { _: ['UserCard'] })
 
-    assert.match(readTree(dir)['src/components/html-editor/html-editor.js'], /name: 'HtmlEditorComponent'/)
-  })
-
-  for (const script of ['js', 'ts']) {
-    it(`generates ${script} components with LF line endings only`, async (t) => {
-      const dir = createProject(t)
-      await runCommand(t, dir, { ...options, script, _: ['user-card'] })
-
-      for (const [file, content] of Object.entries(readTree(dir))) {
-        assert.ok(!content.includes('\r'), `${file} has CRLF line endings`)
-      }
+      expect(generated(dir)).to.deep.equal(['src/components/UserCard.vue'])
+      expect(read(dir, 'src/components/UserCard.vue')).to.equal(vuegComponent(2, { name: 'UserCard', path: 'components' }))
+      expect(read(dir, 'src/components/UserCard.vue')).to.match(/export default \{\s+name: "UserCard"/)
     })
-  }
 
-  it('generates TypeScript components without // @ts-ignore', async (t) => {
-    const dir = createProject(t)
-    await runCommand(t, dir, { ...options, script: 'ts', _: ['user-card'] })
+    it('uses the installed Vue version first', async () => {
+      // package.json says Vue 3, node_modules has Vue 2
+      const dir = createVueProject(2, { dependencies: { vue: '^3.2.13' } })
+      fs.mkdirSync(path.join(dir, 'node_modules', 'vue'), { recursive: true })
+      fs.writeFileSync(path.join(dir, 'node_modules', 'vue', 'package.json'), JSON.stringify({ name: 'vue', version: '2.7.16' }))
+      await runCommand(dir, { _: ['Card'] })
 
-    assert.doesNotMatch(readTree(dir)['src/components/user-card/user-card.ts'], /@ts-ignore/)
-  })
-
-  it('uses the script and style languages of the options', async (t) => {
-    const dir = createProject(t)
-    await runCommand(t, dir, { ...options, script: 'ts', style: 'scss' }, ['user-card'])
-
-    const files = readTree(dir)
-    assert.match(files['src/components/user-card/user-card.ts'], /export default defineComponent\(/)
-    assert.match(files['src/components/user-card/user-card.scss'], /\.UserCard\{\}/)
-  })
-
-  const vue3 = "import { defineComponent } from 'vue'\n\nexport default defineComponent({\n  name: 'UserCardComponent'\n})\n"
-  const scripts = [
-    { project: 'Vue 3', dependencies: { vue: '^3.2.13' }, script: 'js', expected: vue3 },
-    { project: 'Vue 3', dependencies: { vue: '^3.2.13' }, script: 'ts', expected: vue3 },
-    { project: 'no Vue dependency (Vue 3)', dependencies: {}, script: 'ts', expected: vue3 },
-    { project: 'Vue 2', dependencies: { vue: '^2.6.14' }, script: 'js', expected: "export default {\n  name: 'UserCardComponent'\n}\n" },
-    { project: 'Vue 2', dependencies: { vue: '~2.7.16' }, script: 'ts', expected: "import Vue from 'vue'\n\nexport default Vue.extend({\n  name: 'UserCardComponent'\n})\n" },
-    {
-      project: 'Vue 2 with vue-property-decorator',
-      dependencies: { vue: '^2.6.14', 'vue-property-decorator': '^9.1.2' },
-      script: 'ts',
-      expected: "import { Component, Vue } from 'vue-property-decorator'\n\n@Component\nexport default class UserCardComponent extends Vue {}\n"
-    },
-    {
-      project: 'Vue 2 with vue-property-decorator',
-      dependencies: { vue: '^2.6.14', 'vue-property-decorator': '^9.1.2' },
-      script: 'js',
-      expected: "export default {\n  name: 'UserCardComponent'\n}\n"
-    }
-  ]
-
-  for (const { project, dependencies, script, expected } of scripts) {
-    it(`generates the ${script} script of a ${project} project`, async (t) => {
-      const dir = createProject(t, { dependencies })
-      await runCommand(t, dir, { ...options, script, _: ['user-card'] })
-
-      assert.equal(readTree(dir)[`src/components/user-card/user-card.${script}`], expected)
+      expect(read(dir, 'src/components/Card.vue')).to.equal(vuegComponent(2, { name: 'Card', path: 'components' }))
     })
-  }
 
-  describe('existing component', () => {
-    // A generated user-card, with an edited script and a file added by the user
-    async function existingComponent(t) {
-      const dir = createProject(t)
-      await runCommand(t, dir, { ...options, _: ['user-card'] })
-      const folder = path.join(dir, 'src', 'components', 'user-card')
-      fs.writeFileSync(path.join(folder, 'user-card.js'), 'edited')
-      fs.writeFileSync(path.join(folder, 'user-card.spec.js'), 'test')
-      t.mock.method(console, 'warn', () => {})
-      return { dir, folder }
+    it('reads Vue from devDependencies too', async () => {
+      const dir = createVueProject(2, { devDependencies: { vue: '2.6.14' } })
+      await runCommand(dir, { _: ['Card'] })
+
+      expect(read(dir, 'src/components/Card.vue')).to.equal(vuegComponent(2, { name: 'Card', path: 'components' }))
+    })
+
+    it('uses Vue 3 without vue in package.json', async () => {
+      const dir = createVueProject(3, {})
+      await runCommand(dir, { _: ['Card'] })
+
+      expect(read(dir, 'src/components/Card.vue')).to.match(/<script setup>/)
+    })
+
+    for (const vue of ['^1.0.28', '4.0.0']) {
+      it(`refuses Vue ${vue}`, async () => {
+        const dir = createVueProject(3, { dependencies: { vue } })
+        const { output, exitCode } = await runCommand(dir, { _: ['Card'] })
+
+        expect(output.error).to.deep.equal([`Vue ${vue.match(/\d/)[0]} is not supported: Vue 2 and Vue 3 only`])
+        expect(exitCode).to.equal(1)
+        expect(generated(dir)).to.deep.equal([])
+      })
     }
 
-    it('overwrites only the generated files when confirmed', async (t) => {
-      const { dir, folder } = await existingComponent(t)
-      await runCommand(t, dir, { ...options, _: ['user-card'] }, [true])
+    it('refuses a Vue 2 project with Vue 3 in package.json', async () => {
+      const dir = createVueProject(2, { dependencies: { vue: '^3.2.13' } })
+      const { output, exitCode } = await runCommand(dir, { _: ['Card'] })
 
-      assert.match(fs.readFileSync(path.join(folder, 'user-card.js'), 'utf8'), /name: 'UserCardComponent'/)
-      assert.equal(fs.readFileSync(path.join(folder, 'user-card.spec.js'), 'utf8'), 'test')
-      assert.equal(console.warn.mock.callCount(), 1)
-    })
-
-    it('changes nothing when not confirmed', async (t) => {
-      const { dir, folder } = await existingComponent(t)
-      await runCommand(t, dir, { ...options, _: ['user-card'] }, [false])
-
-      assert.equal(fs.readFileSync(path.join(folder, 'user-card.js'), 'utf8'), 'edited')
-      assert.equal(fs.readFileSync(path.join(folder, 'user-card.spec.js'), 'utf8'), 'test')
+      expect(output.error).to.deep.equal(['src/main.js is a Vue 2 entry, but package.json has Vue 3: check the version of vue'])
+      expect(exitCode).to.equal(1)
+      expect(generated(dir)).to.deep.equal([])
     })
   })
 
-  describe('component name', () => {
-    const generated = (dir) => Object.keys(readTree(dir)).filter((file) => file !== 'package.json')
+  describe('name and folder', () => {
+    for (const name of ['UserCard', 'userCard', 'user-card', 'user_card', 'UserCard.vue']) {
+      it(`names the component UserCard for ${name}`, async () => {
+        const dir = createVueProject()
+        await runCommand(dir, { _: [name] })
 
-    it('stops quietly when the name prompt is cancelled', async (t) => {
-      const dir = createProject(t)
-      t.mock.method(console, 'log', () => {})
-      await runCommand(t, dir, options, [new Error('cancelled')])
+        expect(generated(dir)).to.deep.equal(['src/components/UserCard.vue'])
+      })
+    }
 
-      assert.deepEqual(generated(dir), [])
-      assert.deepEqual(console.log.mock.calls[0].arguments, ['Cancelled: no component generated'])
+    it('generates in a sub-folder of src/components/', async () => {
+      const dir = createVueProject()
+      await runCommand(dir, { _: ['admin/user-card'] })
+
+      expect(generated(dir)).to.deep.equal(['src/components/admin/UserCard.vue'])
+    })
+
+    it('generates in the folder of --path, inside src/', async () => {
+      const dir = createVueProject()
+      await runCommand(dir, { _: ['admin/Card'], path: 'ui' })
+      await runCommand(dir, { _: ['Card'], path: '' })
+
+      expect(generated(dir)).to.deep.equal(['src/Card.vue', 'src/ui/admin/Card.vue'])
+    })
+
+    it('generates in the project, whatever the current directory', async () => {
+      const dir = createVueProject()
+      const elsewhere = createProject()
+      await runCommand(dir, { _: ['Card'] }, [], { cwd: elsewhere })
+
+      expect(generated(dir)).to.deep.equal(['src/components/Card.vue'])
+      expect(Object.keys(readTree(elsewhere))).to.deep.equal(['package.json'])
+    })
+
+    it('generates the prompted component', async () => {
+      const dir = createVueProject()
+      await runCommand(dir, {}, ['admin/Card'])
+
+      expect(generated(dir)).to.deep.equal(['src/components/admin/Card.vue'])
+    })
+
+    it('stops quietly when the name prompt is cancelled', async () => {
+      const dir = createVueProject()
+      const { output, exitCode } = await runCommand(dir, {}, [new Error('cancelled')])
+
+      expect(generated(dir)).to.deep.equal([])
+      expect(output.log).to.deep.equal(['Cancelled: no component generated'])
+      expect(exitCode).to.equal(undefined)
     })
 
     const invalid = [
-      { name: '', error: /A component name is required/ },
-      { name: '   ', error: /A component name is required/ },
-      { name: '/', error: /A component name is required/ },
-      { name: '1card', error: /Invalid component name "1card"/ },
-      { name: 'user card', error: /Invalid component name "user card"/ },
-      { name: 'user.card', error: /Invalid component name "user.card"/ },
-      { name: '../user-card', error: /Invalid component path "..\/user-card"/ },
-      { name: 404, error: /Invalid component name "404"/ }
+      { name: '', error: 'A component name is required' },
+      { name: '   ', error: 'A component name is required' },
+      { name: '/', error: 'A component name is required' },
+      { name: '1card', error: 'Invalid component name "1card": letters, digits, - and _ only, starting with a letter' },
+      { name: 'user card', error: 'Invalid component name "user card": letters, digits, - and _ only, starting with a letter' },
+      { name: 'user.card', error: 'Invalid component name "user.card": letters, digits, - and _ only, starting with a letter' },
+      { name: '../user-card', error: 'Invalid component path "../user-card": . and .. are not allowed' },
+      { name: 404, error: 'Invalid component name "404": letters, digits, - and _ only, starting with a letter' }
     ]
 
     for (const { name, error } of invalid) {
-      it(`refuses ${JSON.stringify(name)} without generating anything`, async (t) => {
-        const dir = createProject(t)
+      it(`refuses ${JSON.stringify(name)} without generating anything`, async () => {
+        const dir = createVueProject()
 
-        await assert.rejects(runCommand(t, dir, options, [name]), error)
-        await assert.rejects(runCommand(t, dir, { ...options, _: [name] }), error)
-        assert.deepEqual(generated(dir), [])
+        for (const run of [() => runCommand(dir, {}, [name]), () => runCommand(dir, { _: [name] })]) {
+          const { output, exitCode } = await run()
+          expect(output.error).to.deep.equal([error])
+          expect(exitCode).to.equal(1)
+        }
+        expect(generated(dir)).to.deep.equal([])
       })
     }
   })
 
-  it('reads Vue from devDependencies too', async (t) => {
-    const dir = createProject(t, { devDependencies: { vue: '2.6.14' } })
-    await runCommand(t, dir, { ...options, _: ['user-card'] })
+  describe('options', () => {
+    const cases = [
+      { label: 'Vue 3: --style, --props, --emits, --scoped false', vue: 3,
+        args: { style: 'scss', props: 'title, items', emits: 'close,save', scoped: 'false' },
+        options: { style: 'scss', props: ['title', 'items'], emits: ['close', 'save'], scoped: false } },
+      { label: 'Vue 3: --ts, --options, --blank', vue: 3,
+        args: { ts: true, options: true, blank: true },
+        options: { ts: true, optionsApi: true, blank: true } },
+      { label: 'Vue 3: --module, --no-template', vue: 3,
+        args: { module: true, template: false },
+        options: { cssModule: true, noTemplate: true } },
+      { label: 'Vue 3: --no-script, --no-scoped', vue: 3,
+        args: { script: false, scoped: false },
+        options: { noScript: true, scoped: false } },
+      { label: 'Vue 3: --no-style', vue: 3,
+        args: { style: false },
+        options: { noStyle: true } },
+      { label: 'Vue 2: --style, --props, --blank, --scoped true', vue: 2,
+        args: { style: 'less', props: 'title', blank: 'true', scoped: 'true' },
+        options: { style: 'less', props: ['title'], blank: true, scoped: true } },
+      { label: 'Vue 2: --module, --no-template', vue: 2,
+        args: { module: true, template: false },
+        options: { cssModule: true, noTemplate: true } }
+    ]
 
-    assert.doesNotMatch(readTree(dir)['src/components/user-card/user-card.js'], /defineComponent/)
+    for (const { label, vue, args, options } of cases) {
+      it(`passes ${label} to vueg`, async () => {
+        const dir = createVueProject(vue)
+        await runCommand(dir, { _: ['Card'], ...args })
+
+        expect(read(dir, 'src/components/Card.vue')).to.equal(vuegComponent(vue, { name: 'Card', path: 'components', ...options }))
+      })
+    }
+
+    it('ignores vue-cli-service\'s own options (its boolean flags are always there)', async () => {
+      const dir = createVueProject()
+      const service = { modern: false, report: false, 'report-json': false, 'inline-vue': false, watch: false,
+        open: false, copy: false, https: false, verbose: false, mode: 'development', 'skip-plugins': 'eslint' }
+      const { output, exitCode } = await runCommand(dir, { _: ['Card'], ...service })
+
+      expect(output.error).to.deep.equal([])
+      expect(exitCode).to.equal(undefined)
+      expect(generated(dir)).to.deep.equal(['src/components/Card.vue'])
+    })
+
+    it('takes the last value of an option given twice (the script\'s, then yours)', async () => {
+      const dir = createVueProject()
+      // vue-cli-service generate:component --path components --style css --ts Card --path ui --style less --ts false
+      await runCommand(dir, { _: ['Card'], path: ['components', 'ui'], style: ['css', 'less'], ts: [true, 'false'] })
+
+      expect(generated(dir)).to.deep.equal(['src/ui/Card.vue'])
+      expect(read(dir, 'src/ui/Card.vue')).to.equal(vuegComponent(3, { name: 'Card', path: 'ui', style: 'less' }))
+    })
+
+    it('reads the name after a flag without value given twice (--ts Card --ts false)', async () => {
+      const dir = createVueProject()
+      await runCommand(dir, { ts: ['Card', 'false'] })
+
+      expect(read(dir, 'src/components/Card.vue')).to.equal(vuegComponent(3, { name: 'Card', path: 'components' }))
+    })
+
+    it('reads the name after a flag without value (--blank Card)', async () => {
+      const dir = createVueProject()
+      await runCommand(dir, { blank: 'Card', 'dry-run': 'false' })
+
+      expect(read(dir, 'src/components/Card.vue')).to.equal(vuegComponent(3, { name: 'Card', path: 'components', blank: true }))
+    })
+
+    it('prints the component and writes nothing with --dry-run', async () => {
+      const dir = createVueProject()
+      const { output } = await runCommand(dir, { _: ['Card'], 'dry-run': true })
+
+      expect(generated(dir)).to.deep.equal([])
+      expect(output.log.join('\n')).to.include('<script setup>')
+    })
+
+    const errors = [
+      { label: 'the options removed in 1.0.0', args: { script: 'js', view: 'html', 'root-dir': './src/components' },
+        error: '--script, --view, --root-dir: removed in 1.0.0, components are single .vue files. ' +
+          'Run "vue invoke @ashetm/component-generator" to update the scripts of package.json' },
+      { label: 'an unknown option', args: { color: 'red', x: true },
+        error: 'Unknown option --color, --x, see "vue-cli-service help generate:component"' },
+      { label: '--path without a folder', args: { path: true }, error: '--path needs a folder inside src/, e.g. --path admin' },
+      { label: '--style without a value', args: { style: true }, error: '--style needs a value: css, scss, sass, less or stylus' },
+      { label: '--props without names', args: { props: true }, error: '--props needs comma-separated names, e.g. --props title,items' },
+      { label: 'an unsupported style (vueg\'s message)', args: { style: 'styl' }, error: 'Style styl not supported, use one of: css, scss, sass, less, stylus' },
+      { label: 'a path outside src/ (vueg\'s message)', args: { path: '../lib' }, error: /^Path .* must be/ }
+    ]
+
+    for (const { label, args, error } of errors) {
+      it(`refuses ${label}`, async () => {
+        const dir = createVueProject()
+        const { output, exitCode } = await runCommand(dir, { _: ['Card'], ...args })
+
+        expect(output.error).to.have.lengthOf(1)
+        if (error instanceof RegExp) {
+          expect(output.error[0]).to.match(error)
+        } else {
+          expect(output.error[0]).to.equal(error)
+        }
+        expect(exitCode).to.equal(1)
+        expect(generated(dir)).to.deep.equal([])
+      })
+    }
+
+    it('refuses the Vue 3 options in a Vue 2 project', async () => {
+      const dir = createVueProject(2)
+      const { output, exitCode } = await runCommand(dir, { _: ['Card'], emits: 'close', ts: true, options: true })
+
+      expect(output.error).to.deep.equal(['--emits, --ts, --options: Vue 3 only, this project uses Vue 2'])
+      expect(exitCode).to.equal(1)
+      expect(generated(dir)).to.deep.equal([])
+    })
   })
+
+  describe('existing component', () => {
+    // A generated Card, edited by the user
+    async function existingComponent() {
+      const dir = createVueProject()
+      await runCommand(dir, { _: ['Card'] })
+      fs.writeFileSync(path.join(dir, 'src', 'components', 'Card.vue'), 'edited')
+      return dir
+    }
+
+    it('overwrites it when confirmed', async () => {
+      const dir = await existingComponent()
+      const { output, exitCode } = await runCommand(dir, { _: ['Card'] }, [true])
+
+      expect(output.warn).to.deep.equal(['Component Card exists!'])
+      expect(read(dir, 'src/components/Card.vue')).to.equal(vuegComponent(3, { name: 'Card', path: 'components' }))
+      expect(exitCode).to.equal(undefined)
+    })
+
+    it('changes nothing when not confirmed', async () => {
+      const dir = await existingComponent()
+      const { output, exitCode } = await runCommand(dir, { _: ['Card'] }, [false])
+
+      expect(output.warn).to.deep.equal(['Component Card exists!'])
+      expect(read(dir, 'src/components/Card.vue')).to.equal('edited')
+      expect(exitCode).to.equal(undefined)
+    })
+
+    it('overwrites it without asking with --force', async () => {
+      const dir = await existingComponent()
+      const { output } = await runCommand(dir, { _: ['Card'], force: true })
+
+      expect(output.warn).to.deep.equal([])
+      expect(read(dir, 'src/components/Card.vue')).to.equal(vuegComponent(3, { name: 'Card', path: 'components' }))
+    })
+
+    it('fails without asking with --dry-run', async () => {
+      const dir = await existingComponent()
+      const { output, exitCode } = await runCommand(dir, { _: ['Card'], 'dry-run': true })
+
+      expect(output.warn).to.deep.equal([])
+      expect(output.error).to.deep.equal(['Component already exists, use --force to overwrite it'])
+      expect(exitCode).to.equal(1)
+      expect(read(dir, 'src/components/Card.vue')).to.equal('edited')
+    })
+  })
+
+  for (const vue of [2, 3]) {
+    it(`prints vueg's message outside a Vue ${vue} project`, async () => {
+      const dir = createVueProject(vue)
+      fs.rmSync(path.join(dir, 'src', 'main.js'))
+      const { output, exitCode } = await runCommand(dir, { _: ['Card'] })
+
+      expect(output.error).to.deep.equal(['It is not the root of Vue project'])
+      expect(exitCode).to.equal(1)
+      expect(generated(dir)).to.deep.equal([])
+    })
+  }
 })

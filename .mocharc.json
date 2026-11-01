@@ -1,0 +1,5 @@
+{
+  "spec": "tests/**/*.test.js",
+  "require": "tests/support/vue-cli.js",
+  "timeout": 20000
+}
