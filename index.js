@@ -70,22 +70,20 @@ module.exports = api => {
       const componentDirPath  = path.join(foldersPath, componentName)
       const vueFilePath       = path.join(componentDirPath, `${componentName}.${vueExtension}`)
 
-      // Abort if component already exists
+      // Ask before overwriting an existing component: only its generated files are replaced
       if (fs.existsSync(vueFilePath)) {
         console.warn(`Component ${componentName} exists!`)
 
         const { override } = await prompts([{
           type: 'confirm',
           name: 'override',
-          message: 'Override',
-          default: false
+          message: 'Override its files?',
+          initial: false
         }])
 
         if(!override) {
           return
         }
-
-        fs.rmdirSync(componentDirPath, { recursive: true })
       }
 
       const optionsFsRead = { encoding: 'utf-8' }
@@ -122,7 +120,7 @@ module.exports = api => {
         }).join('')
       }
 
-      fs.mkdirSync(componentDirPath)
+      fs.mkdirSync(componentDirPath, { recursive: true })
 
       const newFilePathVue    = path.join(componentDirPath, `${componentName}.${vueExtension}`)
       const newFilePathView   = path.join(componentDirPath, `${componentName}.${viewExtension}`)
