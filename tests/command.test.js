@@ -92,6 +92,24 @@ describe('generate:component', () => {
     assert.match(readTree(dir)['src/components/html-editor/html-editor.js'], /name: 'HtmlEditorComponent'/)
   })
 
+  for (const script of ['js', 'ts']) {
+    it(`generates ${script} components with LF line endings only`, async (t) => {
+      const dir = createProject(t)
+      await runCommand(t, dir, { ...options, script, _: ['user-card'] })
+
+      for (const [file, content] of Object.entries(readTree(dir))) {
+        assert.ok(!content.includes('\r'), `${file} has CRLF line endings`)
+      }
+    })
+  }
+
+  it('generates TypeScript components without // @ts-ignore', async (t) => {
+    const dir = createProject(t)
+    await runCommand(t, dir, { ...options, script: 'ts', _: ['user-card'] })
+
+    assert.doesNotMatch(readTree(dir)['src/components/user-card/user-card.ts'], /@ts-ignore/)
+  })
+
   it('uses the script and style languages of the options', async (t) => {
     const dir = createProject(t)
     await runCommand(t, dir, { ...options, script: 'ts', style: 'scss' }, ['user-card'])
