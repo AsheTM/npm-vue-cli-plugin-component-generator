@@ -1,5 +1,6 @@
 const { describe, it } = require('node:test')
 const assert = require('node:assert/strict')
+const { execFileSync } = require('node:child_process')
 const { runGenerator } = require('./support/vue-cli')
 
 describe('vue add generator', () => {
@@ -17,6 +18,22 @@ describe('vue add generator', () => {
 
     assert.equal(scripts['generate:component'],
       'vue-cli-service generate:component --style css --script js --view html --root-dir ./src/components')
+  })
+
+  it('quotes a root directory with spaces', () => {
+    const [{ scripts }] = runGenerator({ rootDir: './src/my components' })
+
+    assert.match(scripts['generate:component'], / --root-dir "\.\/src\/my components"$/)
+  })
+
+  it('passes a quoted root directory to the command as one argument', () => {
+    const [{ scripts }] = runGenerator({ rootDir: './src/my components' })
+    // The command line after vue-cli-service, run through the shell npm uses
+    const args = scripts['generate:component'].replace(/^vue-cli-service /, '')
+    const printArgs = `${JSON.stringify(process.execPath)} -e "console.log(JSON.stringify(process.argv.slice(1)))" ${args}`
+    const argv = JSON.parse(execFileSync(printArgs, { shell: true, encoding: 'utf8' }))
+
+    assert.deepEqual(argv.slice(-2), ['--root-dir', './src/my components'])
   })
 
   it('uses JavaScript when it is chosen in a TypeScript project', () => {
