@@ -25,4 +25,16 @@ describe('vue add questions', () => {
     assert.deepEqual(names(questions), ['rootDir', 'style'])
     assert.deepEqual(questions[1].choices, ['css', 'sass', 'scss'])
   })
+
+  for (const sass of ['sass', 'node-sass', 'dart-sass']) {
+    it(`asks for the style language when ${sass} is installed`, () => {
+      assert.deepEqual(names(installQuestions({ devDependencies: { [sass]: '*' } })), ['rootDir', 'style'])
+    })
+  }
+
+  it('finds TypeScript and Sass in dependencies too', () => {
+    const questions = installQuestions({ dependencies: { typescript: '~4.5.5', sass: '^1.32.7' } })
+
+    assert.deepEqual(names(questions), ['rootDir', 'script', 'style'])
+  })
 })
