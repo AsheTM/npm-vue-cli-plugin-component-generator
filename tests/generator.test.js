@@ -13,6 +13,13 @@ describe('vue add generator', () => {
     })
   })
 
+  it('changes nothing else in the project package.json', () => {
+    const extended = runGenerator({ rootDir: './src/components' })
+
+    assert.equal(extended.length, 1)
+    assert.deepEqual(Object.keys(extended[0]), ['scripts'])
+  })
+
   it('uses JavaScript and CSS in a project without TypeScript or Sass (no script or style answer)', () => {
     const [{ scripts }] = runGenerator({ rootDir: './src/components' })
 

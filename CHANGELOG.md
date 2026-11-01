@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - A project `.npmrc` pins the registry to registry.npmjs.org, also for `@ashetm` packages: installs, the lock file and `npm publish` no longer depend on the developer's own npm config (no token in it; npm never packs it) ([#3](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/3)).
+- `vue add` no longer adds an empty `devDependencies` to the project's `package.json`; question typos fixed ("What language do you want to work with?") ([#13](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/13)).
 - CHANGELOG in Keep a Changelog format ([#19](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/19)).
 
 ### Fixed
