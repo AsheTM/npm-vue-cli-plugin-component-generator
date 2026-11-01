@@ -118,7 +118,6 @@ module.exports = api => {
 
       const placeholder = 'PLACEHOLDER'
 
-      const templatePathVue     = path.join(templatesPath, `template.${vueExtension}`)
       const templatePathView    = path.join(templatesPath, `template.${viewExtension}`)
       const templatePathScript  = path.join(templatesPath, scriptTemplate(api.service.pkg || {}, scriptExtension))
       const templatePathStyle   = path.join(templatesPath, `template.${styleExtension}`)
@@ -126,7 +125,6 @@ module.exports = api => {
       // Templates with LF line endings, even from a Windows checkout
       const readTemplate = (templatePath) => fs.readFileSync(templatePath, optionsFsRead).replace(/\r\n/g, '\n')
 
-      const templateContentVue    = readTemplate(templatePathVue)
       const templateContentView   = readTemplate(templatePathView)
       const templateContentScript = readTemplate(templatePathScript)
       const templateContentStyle  = readTemplate(templatePathStyle)
@@ -150,13 +148,12 @@ module.exports = api => {
 
       fs.mkdirSync(componentDirPath, { recursive: true })
 
-      const newFilePathVue    = path.join(componentDirPath, `${componentName}.${vueExtension}`)
       const newFilePathView   = path.join(componentDirPath, `${componentName}.${viewExtension}`)
       const newFilePathScript = path.join(componentDirPath, `${componentName}.${scriptExtension}`)
       const newFilePathStyle  = path.join(componentDirPath, `${componentName}.${styleExtension}`)
 
       // Write files
-      fs.writeFileSync(newFilePathVue,    contentVue,     optionsFsRead)
+      fs.writeFileSync(vueFilePath,       contentVue,     optionsFsRead)
       fs.writeFileSync(newFilePathView,   contentView,    optionsFsRead)
       fs.writeFileSync(newFilePathScript, contentScript,  optionsFsRead)
       fs.writeFileSync(newFilePathStyle,  contentStyle,   optionsFsRead)

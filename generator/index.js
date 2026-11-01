@@ -1,5 +1,5 @@
 
-module.exports = (api, options, rootOptions) => {
+module.exports = (api, options) => {
   const {
     rootDir,
     script,
@@ -24,7 +24,6 @@ module.exports = (api, options, rootOptions) => {
     scripts: {
       [cmd]: `vue-cli-service ${cmd} --style ${styleExtension} --script ${scriptExtension} --view ${viewExtension} --root-dir ${rootDirArgument}`,
       [cmdShortcut]: `npm run ${cmd}`
-    },
-    devDependencies: {}
+    }
   })
 }
