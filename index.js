@@ -11,6 +11,20 @@ function kebabCase(str) {
     .toLowerCase()
 }
 
+// Script template for the project: Vue 3 (default), Vue 2, or a Vue 2 class component with vue-property-decorator
+function scriptTemplate(pkg, scriptExtension) {
+  const dependencies = { ...pkg.dependencies, ...pkg.devDependencies }
+  const vueMajor = Number((String(dependencies.vue || '').match(/\d+/) || [3])[0])
+
+  if(vueMajor !== 2) {
+    return `template.${scriptExtension}`
+  }
+  if(scriptExtension === 'ts' && 'vue-property-decorator' in dependencies) {
+    return 'template.class.ts'
+  }
+  return `template.vue2.${scriptExtension}`
+}
+
 module.exports = api => {
   const cmd = 'generate:component'
 
@@ -80,7 +94,7 @@ module.exports = api => {
 
       const templatePathVue     = path.join(templatesPath, `template.${vueExtension}`)
       const templatePathView    = path.join(templatesPath, `template.${viewExtension}`)
-      const templatePathScript  = path.join(templatesPath, `template.${scriptExtension}`)
+      const templatePathScript  = path.join(templatesPath, scriptTemplate(api.service.pkg || {}, scriptExtension))
       const templatePathStyle   = path.join(templatesPath, `template.${styleExtension}`)
 
       // Templates with LF line endings, even from a Windows checkout
@@ -98,7 +112,7 @@ module.exports = api => {
 
       const contentVue    = importLines
       const contentView   = templateContentView.replace(placeholder, `${prettify(componentName)}`)
-      const contentScript = templateContentScript.replace(placeholder, `${prettify(componentName)}Component`).replaceAll('// @ts-ignore\n', '')
+      const contentScript = templateContentScript.replace(placeholder, `${prettify(componentName)}Component`)
       const contentStyle  = templateContentStyle.replace(placeholder, `${prettify(componentName)}`)
 
       // Convert component name to CamelCase
