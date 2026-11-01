@@ -1,7 +1,7 @@
 {
   "name": "@ashetm/vue-cli-plugin-component-generator",
   "description": "Vue CLI plugin generating single-file components with vueg, in Vue 2 and Vue 3 projects",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "main": "index.js",
   "files": [
     "index.js",
