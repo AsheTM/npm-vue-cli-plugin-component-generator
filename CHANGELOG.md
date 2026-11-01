@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Tests with the built-in `node:test` runner and a fake Vue CLI API, run in temporary projects: `npm test`, and `npm run test:coverage` for the coverage ([#1](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/1)).
+- CI: GitHub Actions run `npm ci` and `npm test` on every pull request into `develop` or `master` and every push to `develop`, on Node 18, 20, 22 and 24, on Ubuntu and Windows. Dependabot: a weekly pull request into `develop` for npm packages and GitHub Actions ([#2](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/2)).
 
 ### Changed
 - CHANGELOG in Keep a Changelog format ([#19](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/19)).
