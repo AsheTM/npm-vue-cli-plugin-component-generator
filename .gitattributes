@@ -1,0 +1,2 @@
+# Generator templates: always LF, whatever the OS
+generator/templates/* text eol=lf

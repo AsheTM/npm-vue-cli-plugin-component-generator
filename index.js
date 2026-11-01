@@ -83,10 +83,13 @@ module.exports = api => {
       const templatePathScript  = path.join(templatesPath, `template.${scriptExtension}`)
       const templatePathStyle   = path.join(templatesPath, `template.${styleExtension}`)
 
-      const templateContentVue    = fs.readFileSync(templatePathVue,    optionsFsRead)
-      const templateContentView   = fs.readFileSync(templatePathView,   optionsFsRead)
-      const templateContentScript = fs.readFileSync(templatePathScript, optionsFsRead)
-      const templateContentStyle  = fs.readFileSync(templatePathStyle,  optionsFsRead)
+      // Templates with LF line endings, even from a Windows checkout
+      const readTemplate = (templatePath) => fs.readFileSync(templatePath, optionsFsRead).replace(/\r\n/g, '\n')
+
+      const templateContentVue    = readTemplate(templatePathVue)
+      const templateContentView   = readTemplate(templatePathView)
+      const templateContentScript = readTemplate(templatePathScript)
+      const templateContentStyle  = readTemplate(templatePathStyle)
 
       const importLineView    = `<template src="./${componentName}.${viewExtension}"></template>`
       const importLineScript  = `<script src="./${componentName}.${scriptExtension}"></script>`
