@@ -38,8 +38,9 @@ function runGenerator(answers) {
   return extended
 }
 
-// Run generate:component in the project; promptAnswers are injected in the prompts (name, override)
-async function runCommand(t, dir, args = {}, promptAnswers = []) {
+// Run generate:component for the project, from cwd (the project by default);
+// promptAnswers are injected in the prompts (name, override)
+async function runCommand(t, dir, args = {}, promptAnswers = [], cwd = dir) {
   let command
   const api = {
     registerCommand: (name, options, fn) => (command = { name, options, fn }),
@@ -49,13 +50,13 @@ async function runCommand(t, dir, args = {}, promptAnswers = []) {
   }
   require(path.join(root, 'index.js'))(api)
 
-  const cwd = process.cwd()
-  process.chdir(dir)
+  const previous = process.cwd()
+  process.chdir(cwd)
   try {
     prompts.inject(promptAnswers)
     await command.fn({ _: [], ...args })
   } finally {
-    process.chdir(cwd)
+    process.chdir(previous)
   }
   return command
 }
