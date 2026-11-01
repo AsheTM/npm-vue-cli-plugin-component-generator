@@ -11,4 +11,17 @@ describe('vue add generator', () => {
       'g:c': 'npm run generate:component'
     })
   })
+
+  it('uses JavaScript and CSS in a project without TypeScript or Sass (no script or style answer)', () => {
+    const [{ scripts }] = runGenerator({ rootDir: './src/components' })
+
+    assert.equal(scripts['generate:component'],
+      'vue-cli-service generate:component --style css --script js --view html --root-dir ./src/components')
+  })
+
+  it('uses JavaScript when it is chosen in a TypeScript project', () => {
+    const [{ scripts }] = runGenerator({ rootDir: './src/components', script: 'javascript', style: 'css' })
+
+    assert.match(scripts['generate:component'], / --script js /)
+  })
 })
