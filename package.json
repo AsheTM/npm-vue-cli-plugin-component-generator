@@ -38,7 +38,7 @@
     "plugin"
   ],
   "dependencies": {
-    "prompts": "^2.4.1"
+    "prompts": "^2.4.2"
   },
   "homepage": "https://github.com/AsheTM/npm-vue-cli-plugin-component-generator#readme"
 }
