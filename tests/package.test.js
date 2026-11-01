@@ -11,6 +11,7 @@ describe('npm package', () => {
 
     assert.deepEqual(files.map((file) => file.path).sort(), [
       'CHANGELOG.md',
+      'LICENSE',
       'README.md',
       'generator/index.js',
       'generator/templates/template.class.ts',
