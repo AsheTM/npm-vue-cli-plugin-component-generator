@@ -1,28 +1,25 @@
-<a href="https://www.npmjs.com/package/vue-cli-plugin-vue-component-generator">
-    <img alt="" src="https://img.shields.io/npm/v/vue-cli-plugin-vue-component-generator/latest.svg?style=flat-square">
-</a>
-<a href="https://www.npmjs.com/package/vue-cli-plugin-vue-component-generator">
-    <img alt="" src="https://img.shields.io/npm/dm/vue-cli-plugin-vue-component-generator.svg?style=flat-square">
-</a>
+# Vue CLI component generator
 
-# Vue Component Generator (Javascript & Typescript)
+[![npm version](https://img.shields.io/npm/v/@ashetm/vue-cli-plugin-component-generator?style=flat-square)](https://www.npmjs.com/package/@ashetm/vue-cli-plugin-component-generator)
+[![npm downloads](https://img.shields.io/npm/dm/@ashetm/vue-cli-plugin-component-generator?style=flat-square)](https://www.npmjs.com/package/@ashetm/vue-cli-plugin-component-generator)
+[![CI](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/@ashetm/vue-cli-plugin-component-generator?style=flat-square)](LICENSE)
 
-[vue-cli 3](https://github.com/vuejs/vue-cli) plugin to generate vue components
-
-This package will works with typescript and create vue components easily using vue cli.
+[Vue CLI](https://cli.vuejs.org) plugin generating Vue components, in JavaScript or TypeScript, with their template, script and style in separate files.
 
 ## Installation
 
-- Install via npm
+In a Vue CLI project:
 
 ```sh
-$ npm i @ashetm/vue-cli-plugin-component-generator
+vue add @ashetm/vue-cli-plugin-component-generator
 ```
 
-- Install via vue-cli
+or with npm, then `vue invoke` to answer the installation questions:
 
 ```sh
-$ vue add @ashetm/vue-cli-plugin-component-generator
+npm install --save-dev @ashetm/vue-cli-plugin-component-generator
+vue invoke @ashetm/vue-cli-plugin-component-generator
 ```
 
 ## Usage
@@ -50,3 +47,11 @@ Now it will generate 4 files in the defined directory inside a folder with file 
     file-name.vue
     file-name.scss or file-name.sass or file-name.css
     file-name.js or file-name.ts
+
+## Credits
+
+This README started from the one of [vue-cli-plugin-vue-component-generator](https://www.npmjs.com/package/vue-cli-plugin-vue-component-generator), by Udara bandara (MIT).
+
+## License
+
+[MIT](LICENSE)
