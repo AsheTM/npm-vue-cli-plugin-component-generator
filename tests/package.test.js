@@ -1,5 +1,4 @@
-const { describe, it } = require('node:test')
-const assert = require('node:assert/strict')
+const { expect } = require('chai')
 const { execSync } = require('node:child_process')
 const path = require('node:path')
 
@@ -9,7 +8,7 @@ describe('npm package', () => {
   it('publishes only the plugin, its templates and docs', () => {
     const [{ files }] = JSON.parse(execSync('npm pack --dry-run --json --ignore-scripts', { cwd: root, encoding: 'utf8' }))
 
-    assert.deepEqual(files.map((file) => file.path).sort(), [
+    expect(files.map((file) => file.path).sort()).to.deep.equal([
       'CHANGELOG.md',
       'LICENSE',
       'README.md',
