@@ -1,7 +1,7 @@
 {
   "name": "@ashetm/vue-cli-plugin-component-generator",
   "description": "Vue CLI plugin generating Vue 2 and Vue 3 components, with their template, script and style in separate files",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "main": "index.js",
   "files": [
     "index.js",
