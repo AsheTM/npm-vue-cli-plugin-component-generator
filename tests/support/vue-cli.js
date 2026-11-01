@@ -2,16 +2,48 @@
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
+const { expect } = require('chai')
 const prompts = require('prompts')
 
 const root = path.join(__dirname, '..', '..')
 
+// Undone after each test: temporary projects, stubbed methods
+const cleanups = []
+
+// Mocha root hooks (loaded by .mocharc.json)
+const mochaHooks = {
+  afterEach() {
+    while (cleanups.length) {
+      cleanups.pop()()
+    }
+  }
+}
+
 // A temporary project with this package.json, removed after the test
-function createProject(t, pkg = {}) {
+function createProject(pkg = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'component-generator-'))
   fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify(pkg, null, 2))
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  cleanups.push(() => fs.rmSync(dir, { recursive: true, force: true }))
   return dir
+}
+
+// Replace object[method] until the end of the test; returns the arguments of each call
+function stub(object, method) {
+  const original = object[method]
+  const calls = []
+  object[method] = (...args) => { calls.push(args) }
+  cleanups.push(() => { object[method] = original })
+  return calls
+}
+
+// The error a promise rejects with (fails if it resolves)
+async function rejection(promise) {
+  try {
+    await promise
+  } catch (err) {
+    return err
+  }
+  expect.fail('expected a rejection')
 }
 
 // Every file under dir, as { 'relative/path': content }
@@ -40,7 +72,7 @@ function runGenerator(answers) {
 
 // Run generate:component for the project, from cwd (the project by default);
 // promptAnswers are injected in the prompts (name, override)
-async function runCommand(t, dir, args = {}, promptAnswers = [], cwd = dir) {
+async function runCommand(dir, args = {}, promptAnswers = [], cwd = dir) {
   let command
   const api = {
     registerCommand: (name, options, fn) => (command = { name, options, fn }),
@@ -61,4 +93,4 @@ async function runCommand(t, dir, args = {}, promptAnswers = [], cwd = dir) {
   return command
 }
 
-module.exports = { createProject, readTree, installQuestions, runGenerator, runCommand }
+module.exports = { mochaHooks, createProject, stub, rejection, readTree, installQuestions, runGenerator, runCommand }

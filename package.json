@@ -10,11 +10,11 @@
     "CHANGELOG.md"
   ],
   "engines": {
-    "node": ">=18"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
-    "test": "node --test",
-    "test:coverage": "node --test --experimental-test-coverage --test-coverage-exclude=tests/**"
+    "test": "mocha",
+    "test:coverage": "c8 mocha"
   },
   "repository": {
     "type": "git",
@@ -40,5 +40,10 @@
   "dependencies": {
     "prompts": "^2.4.2"
   },
-  "homepage": "https://github.com/AsheTM/npm-vue-cli-plugin-component-generator#readme"
+  "homepage": "https://github.com/AsheTM/npm-vue-cli-plugin-component-generator#readme",
+  "devDependencies": {
+    "c8": "^12.0.0",
+    "chai": "^6.3.0",
+    "mocha": "^12.0.3"
+  }
 }

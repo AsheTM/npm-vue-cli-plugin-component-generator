@@ -1,5 +1,4 @@
-const { describe, it } = require('node:test')
-const assert = require('node:assert/strict')
+const { expect } = require('chai')
 const { installQuestions } = require('./support/vue-cli')
 
 const names = (questions) => questions.map((question) => question.name)
@@ -8,33 +7,33 @@ describe('vue add questions', () => {
   it('asks only for the root directory in a plain project', () => {
     const questions = installQuestions({})
 
-    assert.deepEqual(names(questions), ['rootDir'])
-    assert.equal(questions[0].default, './src/components')
+    expect(names(questions)).to.deep.equal(['rootDir'])
+    expect(questions[0].default).to.equal('./src/components')
   })
 
   it('asks for the script language when TypeScript is installed', () => {
     const questions = installQuestions({ devDependencies: { typescript: '^4.5.0' } })
 
-    assert.deepEqual(names(questions), ['rootDir', 'script'])
-    assert.deepEqual(questions[1].choices, ['javascript', 'typescript'])
+    expect(names(questions)).to.deep.equal(['rootDir', 'script'])
+    expect(questions[1].choices).to.deep.equal(['javascript', 'typescript'])
   })
 
   it('asks for the style language when sass-loader is installed', () => {
     const questions = installQuestions({ devDependencies: { 'sass-loader': '^12.0.0' } })
 
-    assert.deepEqual(names(questions), ['rootDir', 'style'])
-    assert.deepEqual(questions[1].choices, ['css', 'sass', 'scss'])
+    expect(names(questions)).to.deep.equal(['rootDir', 'style'])
+    expect(questions[1].choices).to.deep.equal(['css', 'sass', 'scss'])
   })
 
   for (const sass of ['sass', 'node-sass', 'dart-sass']) {
     it(`asks for the style language when ${sass} is installed`, () => {
-      assert.deepEqual(names(installQuestions({ devDependencies: { [sass]: '*' } })), ['rootDir', 'style'])
+      expect(names(installQuestions({ devDependencies: { [sass]: '*' } }))).to.deep.equal(['rootDir', 'style'])
     })
   }
 
   it('finds TypeScript and Sass in dependencies too', () => {
     const questions = installQuestions({ dependencies: { typescript: '~4.5.5', sass: '^1.32.7' } })
 
-    assert.deepEqual(names(questions), ['rootDir', 'script', 'style'])
+    expect(names(questions)).to.deep.equal(['rootDir', 'script', 'style'])
   })
 })
