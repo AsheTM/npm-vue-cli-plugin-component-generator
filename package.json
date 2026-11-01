@@ -3,6 +3,10 @@
   "description": "Vue component generator for new components",
   "version": "0.1.1",
   "main": "index.js",
+  "scripts": {
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-exclude=tests/**"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AsheTM/vue-cli-plugin-component-generator.git"

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Tests with the built-in `node:test` runner and a fake Vue CLI API, run in temporary projects: `npm test`, and `npm run test:coverage` for the coverage ([#1](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/1)).
+
 ### Changed
 - CHANGELOG in Keep a Changelog format ([#19](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/19)).
 
