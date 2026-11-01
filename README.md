@@ -1,52 +1,133 @@
-<a href="https://www.npmjs.com/package/vue-cli-plugin-vue-component-generator">
-    <img alt="" src="https://img.shields.io/npm/v/vue-cli-plugin-vue-component-generator/latest.svg?style=flat-square">
-</a>
-<a href="https://www.npmjs.com/package/vue-cli-plugin-vue-component-generator">
-    <img alt="" src="https://img.shields.io/npm/dm/vue-cli-plugin-vue-component-generator.svg?style=flat-square">
-</a>
+# Vue CLI component generator
 
-# Vue Component Generator (Javascript & Typescript)
+[![npm version](https://img.shields.io/npm/v/@ashetm/vue-cli-plugin-component-generator?style=flat-square)](https://www.npmjs.com/package/@ashetm/vue-cli-plugin-component-generator)
+[![npm downloads](https://img.shields.io/npm/dm/@ashetm/vue-cli-plugin-component-generator?style=flat-square)](https://www.npmjs.com/package/@ashetm/vue-cli-plugin-component-generator)
+[![CI](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/@ashetm/vue-cli-plugin-component-generator?style=flat-square)](LICENSE)
 
-[vue-cli 3](https://github.com/vuejs/vue-cli) plugin to generate vue components
-
-This package will works with typescript and create vue components easily using vue cli.
+[Vue CLI](https://cli.vuejs.org) plugin generating Vue components, in JavaScript or TypeScript, with their template, script and style in separate files.
 
 ## Installation
 
-- Install via npm
+In a Vue CLI project:
 
 ```sh
-$ npm i @ashetm/vue-cli-plugin-component-generator
+vue add @ashetm/vue-cli-plugin-component-generator
 ```
 
-- Install via vue-cli
+or with npm, then `vue invoke` to answer the installation questions:
 
 ```sh
-$ vue add @ashetm/vue-cli-plugin-component-generator
+npm install --save-dev @ashetm/vue-cli-plugin-component-generator
+vue invoke @ashetm/vue-cli-plugin-component-generator
 ```
+
+The installation asks:
+
+- the components root directory (`./src/components` by default);
+- the script language, `javascript` or `typescript`, when TypeScript is installed (JavaScript otherwise);
+- the style language, `css`, `sass` or `scss`, when Sass is installed (`sass`, `sass-loader`, `node-sass`…; CSS otherwise).
+
+and adds 2 scripts to the project's `package.json` with your answers, for example:
+
+```json
+"generate:component": "vue-cli-service generate:component --style scss --script ts --view html --root-dir ./src/components",
+"g:c": "npm run generate:component"
+```
+
+To change the answers later, run `vue invoke @ashetm/vue-cli-plugin-component-generator` again.
 
 ## Usage
-- Invoke to generate a new components:
 
 ```sh
-$ vue invoke  @ashetm/vue-cli-plugin-component-generator
+npm run generate:component                  # asks for the component name
+npm run generate:component UserCard         # in the root directory
+npm run generate:component admin/UserCard   # in a sub-folder of the root directory
+npm run g:c UserCard                        # shortcut
 ```
-This will prompt to following questions.
+
+The name can be written `UserCard`, `userCard`, `user-card` or `user_card`: it must start with a letter, then letters, digits, `-` and `_`. Sub-folders are created when needed.
+
+The command generates 4 files in a folder named after the component (in kebab-case). For `admin/UserCard` with TypeScript and SCSS, in a Vue 3 project:
+
+```text
+src/components/admin/user-card/
+├── user-card.vue
+├── user-card.html
+├── user-card.ts
+└── user-card.scss
+```
+
+`user-card.vue` links the 3 others:
+
+```html
+<template src="./user-card.html"></template>
+
+<script src="./user-card.ts"></script>
+
+<style src="./user-card.scss"></style>
+```
+
+`user-card.html`:
+
+```html
+<div class="UserCard">
+  <h1>Component Works</h1>
+</div>
+```
+
+`user-card.ts`:
+
+```ts
+import { defineComponent } from 'vue'
+
+export default defineComponent({
+  name: 'UserCardComponent'
+})
+```
+
+`user-card.scss`:
+
+```scss
+.UserCard{}
+```
+
+If the component already exists, the command asks before overwriting its 4 files (other files of its folder are kept).
+
+### Vue 2 and Vue 3
+
+The script follows the project's Vue version, read from its `package.json`:
+
+| Project | JavaScript | TypeScript |
+|---|---|---|
+| Vue 3 (or `vue` not listed) | `defineComponent({ name })` | `defineComponent({ name })` |
+| Vue 2 | `export default { name }` | `Vue.extend({ name })` |
+| Vue 2 with `vue-property-decorator` | `export default { name }` | `@Component` class |
+
+### Options
+
+The scripts added at installation pass these options; when running `vue-cli-service generate:component` yourself, each has a default:
+
+| Option | Values | Default |
+|---|---|---|
+| `--script` | `js`, `ts` | `js` |
+| `--style` | `css`, `scss`, `sass` | `css` |
+| `--view` | `html` | `html` |
+| `--root-dir` | a folder of the project | `./src/components` |
+
+## Development
 
 ```sh
-? Where's your components's root directory?
+npm test                # tests (node:test)
+npm run test:coverage   # tests with coverage
 ```
 
-By default this will give ./src/components path. But you can decide and type the path you want to generate the component.
+Tests run the plugin with a fake Vue CLI API in temporary projects. The CI runs them on Node 18, 20, 22 and 24, on Ubuntu and Windows.
 
-```sh
-? What's your component name?
-```
-Here componet name can be defined.
+## Credits
 
-Now it will generate 4 files in the defined directory inside a folder with file name.
+This README started from the one of [vue-cli-plugin-vue-component-generator](https://www.npmjs.com/package/vue-cli-plugin-vue-component-generator), by Udara bandara (MIT).
 
-    file-name.html
-    file-name.vue
-    file-name.scss or file-name.sass or file-name.css
-    file-name.js or file-name.ts
+## License
+
+[MIT](LICENSE)

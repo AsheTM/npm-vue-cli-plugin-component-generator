@@ -1,14 +1,27 @@
 {
   "name": "@ashetm/vue-cli-plugin-component-generator",
-  "description": "Vue component generator for new components",
-  "version": "0.1.1",
+  "description": "Vue CLI plugin generating Vue 2 and Vue 3 components, with their template, script and style in separate files",
+  "version": "0.2.0",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "prompts.js",
+    "generator/",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-exclude=tests/**"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AsheTM/vue-cli-plugin-component-generator.git"
+    "url": "git+https://github.com/AsheTM/npm-vue-cli-plugin-component-generator.git"
   },
   "bugs": {
-    "url": "https://github.com/AsheTM/vue-cli-plugin-component-generator/issues"
+    "url": "https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues"
   },
   "author": "DAWOUD Haitham <contact@ashetm.com>",
   "license": "MIT",
@@ -17,12 +30,15 @@
   },
   "keywords": [
     "vue",
+    "vue-cli",
+    "vue-cli-plugin",
     "components",
+    "generator",
     "cli",
     "plugin"
   ],
   "dependencies": {
     "prompts": "^2.4.1"
   },
-  "homepage": "https://github.com/AsheTM/vue-cli-plugin-component-generator#readme"
+  "homepage": "https://github.com/AsheTM/npm-vue-cli-plugin-component-generator#readme"
 }

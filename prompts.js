@@ -1,6 +1,7 @@
 
 module.exports = packageJson => {
-  const devDependencies = packageJson.devDependencies || {}
+  // Installed packages, wherever they are listed
+  const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies }
 
   let prompts = [
     {
@@ -8,45 +9,26 @@ module.exports = packageJson => {
       name: 'rootDir',
       message: 'Where\'s your components\'s root directory?',
       default: './src/components'
-    }/*, {
-      type: 'input',
-      name: 'componentName',
-      message: 'What\'s your new component\'s name?',
-      validate(input) {
-        return String(input).match(/$\w(-?(\w|\d))*^/)
-      }
-    }*/
+    }
   ]
 
-  if('typescript' in devDependencies) {
+  if('typescript' in dependencies) {
     prompts = [
       ...prompts, {
         type: 'list',
         name: 'script',
-        message: 'What langage you want to work with?',
-        // validate(input) {
-        //   return ['js', 'javascript', 'ts', 'typescript'].includes(input)
-        // },
-        // default: 'typescript',
+        message: 'What language do you want to work with?',
         choices: ['javascript', 'typescript']
       }
     ]
   }
 
-  if(
-    'node-sass' in devDependencies ||
-    'dart-sass' in devDependencies ||
-    'sass-loader' in devDependencies
-  ) {
+  if(['sass', 'node-sass', 'dart-sass', 'sass-loader'].some((name) => name in dependencies)) {
     prompts = [
       ...prompts, {
         type: 'list',
         name: 'style',
-        message: 'What style you want to work with?',
-        // validate(input) {
-        //   return ['css', 'sass', 'scss'].includes(input)
-        // },
-        // default: 'scss',
+        message: 'What style do you want to work with?',
         choices: ['css', 'sass', 'scss']
       }
     ]
