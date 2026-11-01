@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `vue add` no longer adds an empty `devDependencies` to the project's `package.json`; question typos fixed ("What language do you want to work with?") ([#13](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/13)).
 - `package.json`: repository, issues and homepage links to the repository's current name (`npm-vue-cli-plugin-component-generator`); `files`, so only the plugin, its templates and docs are published (not the tests, CI and editor files); `engines`: Node 18 or later; a description and keywords that say what it does ([#14](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/14)).
 - `package-lock.json` regenerated against registry.npmjs.org: lockfile version 3, and the package version in sync (it said 0.1.0) ([#15](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/15)).
+- README: the badges show this package (version, downloads, CI, license) instead of `vue-cli-plugin-vue-component-generator`, another author's package; installation with `vue add` or npm + `vue invoke`; credit to the project the README started from; license ([#17](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/17)).
 - CHANGELOG in Keep a Changelog format ([#19](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/19)).
 
 ### Fixed
