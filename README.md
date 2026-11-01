@@ -5,11 +5,13 @@
 [![CI](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/@ashetm/vue-cli-plugin-component-generator?style=flat-square)](LICENSE)
 
-[Vue CLI](https://cli.vuejs.org) plugin generating Vue components, in JavaScript or TypeScript, with their template, script and style in separate files.
+[Vue CLI](https://cli.vuejs.org) plugin generating **single-file components**, and **views with their route**, in Vue 2 and Vue 3 projects.
+
+Generation relies on [vueg](https://github.com/AsheTM/npm-vueg) and [vuegc](https://github.com/AsheTM/npm-vuegc): same options, same files. Not a Vue CLI project (Vite, create-vue)? Use the `vueg` command directly.
 
 ## Installation
 
-In a Vue CLI project:
+In a Vue CLI project (Node 20.19 or later):
 
 ```sh
 vue add @ashetm/vue-cli-plugin-component-generator
@@ -24,105 +26,192 @@ vue invoke @ashetm/vue-cli-plugin-component-generator
 
 The installation asks:
 
-- the components root directory (`./src/components` by default);
-- the script language, `javascript` or `typescript`, when TypeScript is installed (JavaScript otherwise);
-- the style language, `css`, `sass` or `scss`, when Sass is installed (`sass`, `sass-loader`, `node-sass`…; CSS otherwise).
+- where your components are, inside `src/` (`components` by default);
+- the style, `css` or one of the installed pre-processors: `scss` and `sass` with Sass, `less` with Less, `stylus` with Stylus. CSS when none is installed;
+- in a Vue 3 project with TypeScript, whether components are in TypeScript.
 
-and adds 2 scripts to the project's `package.json` with your answers, for example:
+It adds 4 scripts to your `package.json`, for example in a Vue 3 project with Sass and TypeScript:
 
 ```json
-"generate:component": "vue-cli-service generate:component --style scss --script ts --view html --root-dir ./src/components",
-"g:c": "npm run generate:component"
+"generate:component": "vue-cli-service generate:component --ts --style scss",
+"g:c": "npm run generate:component --",
+"generate:view": "vue-cli-service generate:view --ts --style scss",
+"g:v": "npm run generate:view --"
 ```
 
 To change the answers later, run `vue invoke @ashetm/vue-cli-plugin-component-generator` again.
 
-## Usage
+## Components
 
 ```sh
-npm run generate:component                  # asks for the component name
-npm run generate:component UserCard         # in the root directory
-npm run generate:component admin/UserCard   # in a sub-folder of the root directory
-npm run g:c UserCard                        # shortcut
+npm run generate:component                        # asks for the name
+npm run generate:component UserCard               # src/components/UserCard.vue
+npm run generate:component admin/user-card        # src/components/admin/UserCard.vue
+npm run g:c -- Card --props title,items --blank   # shortcut, with options after --
 ```
 
-The name can be written `UserCard`, `userCard`, `user-card` or `user_card`: it must start with a letter, then letters, digits, `-` and `_`. Sub-folders are created when needed.
+- The name can be written `UserCard`, `userCard`, `user-card`, `user_card` or `UserCard.vue`; the component is `UserCard.vue`. It starts with a letter, then letters, digits, `-` and `_`.
+- Sub-folders in the name (`admin/user-card`) are created inside the components folder.
+- An existing component isn't overwritten without asking first, or `--force`.
 
-The command generates 4 files in a folder named after the component (in kebab-case). For `admin/UserCard` with TypeScript and SCSS, in a Vue 3 project:
+`npm run g:c -- admin/user-card --props title,items --blank`, with `--style scss`, generates `src/components/admin/UserCard.vue`.
+
+In a **Vue 3** project:
+
+```vue
+<template>
+    <div></div>
+</template>
+
+<script setup>
+const props = defineProps({
+    title: null,
+    items: null
+});
+</script>
+
+<style lang="scss" scoped>
+</style>
+```
+
+In a **Vue 2** project:
+
+```vue
+<template>
+    <div></div>
+</template>
+
+<script>
+export default {
+    name: "UserCard",
+    props: {
+        title: null,
+        items: null
+    },
+    data() {
+        return { };
+    },
+    methods: { }
+}
+</script>
+
+<style lang="scss" scoped>
+</style>
+```
+
+Without `--blank`, the template and the style have some demo content.
+
+## Views
+
+A view is a page: a component in `src/views/`, shown by the router. `generate:view` generates it and adds its route to `src/router/index.js` (or `index.ts`, `router.js`, `router.ts`).
+
+```sh
+npm run generate:view About                       # src/views/About.vue, route /about
+npm run generate:view admin/UserProfile           # src/views/admin/UserProfile.vue, route /admin/user-profile
+npm run g:v -- Profile --route /users/:id         # choose the route's path
+npm run g:v -- Help --no-route                    # leave the router as is
+```
+
+`npm run generate:view admin/UserProfile` prints:
 
 ```text
-src/components/admin/user-card/
-├── user-card.vue
-├── user-card.html
-├── user-card.ts
-└── user-card.scss
+> Generating vue component starting
+> Generating vue component success
+> Route /admin/user-profile added to src/router/index.js
 ```
 
-`user-card.vue` links the 3 others:
+and adds the route, **lazy loaded**, in the style of your router file (indentation, quotes, trailing commas):
 
-```html
-<template src="./user-card.html"></template>
-
-<script src="./user-card.ts"></script>
-
-<style src="./user-card.scss"></style>
+```js
+const routes = [
+  {
+    path: '/',
+    name: 'home',
+    component: HomeView
+  },
+  {
+    path: '/admin/user-profile',
+    name: 'userProfile',
+    component: () => import('../views/admin/UserProfile.vue')
+  }
+]
 ```
 
-`user-card.html`:
+**Nothing is written if something is wrong**: no router, a route path or name already used, an invalid `--route`, or a view that already exists without `--force`. The message says what to do. To regenerate an existing view, its route usually exists too: use `--force --no-route`.
 
-```html
-<div class="UserCard">
-  <h1>Component Works</h1>
-</div>
-```
+## Options
 
-`user-card.ts`:
+Both commands take the same options. The scripts added at installation already pass `--style` (and `--ts`, `--path`); add others after `--` with the shortcuts. Give one of the script's options again to change it for one run: `npm run g:c -- Card --style less`, `--ts false`.
 
-```ts
-import { defineComponent } from 'vue'
-
-export default defineComponent({
-  name: 'UserCardComponent'
-})
-```
-
-`user-card.scss`:
-
-```scss
-.UserCard{}
-```
-
-If the component already exists, the command asks before overwriting its 4 files (other files of its folder are kept).
-
-### Vue 2 and Vue 3
-
-The script follows the project's Vue version, read from its `package.json`:
-
-| Project | JavaScript | TypeScript |
+| Option | Description | Default |
 |---|---|---|
-| Vue 3 (or `vue` not listed) | `defineComponent({ name })` | `defineComponent({ name })` |
-| Vue 2 | `export default { name }` | `Vue.extend({ name })` |
-| Vue 2 with `vue-property-decorator` | `export default { name }` | `@Component` class |
+| `--path` | `generate:component`: folder inside `src/`. `generate:view`: sub-folder of `src/views/` | `components` / `src/views/` |
+| `--style` | `css`, `scss`, `sass` (indented syntax), `less` or `stylus` | `css` in Vue 3, `scss` in Vue 2 |
+| `--scoped` | `scoped` attribute on `<style>`, `--scoped false` to remove it | `true` |
+| `--module` | CSS modules: `<style module>` instead of `scoped` | |
+| `--props` | Comma-separated prop names: `--props title,items` | |
+| `--blank` | Empty template and style, without the demo content | |
+| `--no-template`, `--no-script`, `--no-style` | Leave the section out | |
+| `--force` | Overwrite the component or view without asking | |
+| `--dry-run` | Print the component (and the route) instead of writing it | |
+| `--route` | `generate:view` only: path of the route, starting with `/` | `/<path>/<name in kebab-case>` |
+| `--no-route` | `generate:view` only: generate the view, leave the router as is | |
 
-### Options
+**Vue 3 only:**
 
-The scripts added at installation pass these options; when running `vue-cli-service generate:component` yourself, each has a default:
+| Option | Description |
+|---|---|
+| `--emits` | Comma-separated event names: `--emits close,save` |
+| `--ts` | `<script setup lang="ts">` |
+| `--options` | Options API (`export default { … }`) instead of `<script setup>` |
 
-| Option | Values | Default |
+`vue-cli-service help generate:component` and `vue-cli-service help generate:view` list them too.
+
+## Vue 2 and Vue 3
+
+The plugin reads the project's Vue version: the installed `vue` package first, then `vue` in your `package.json` (`dependencies` or `devDependencies`). Without either, Vue 3.
+
+| Project | Generated by | Script |
 |---|---|---|
-| `--script` | `js`, `ts` | `js` |
-| `--style` | `css`, `scss`, `sass` | `css` |
-| `--view` | `html` | `html` |
-| `--root-dir` | a folder of the project | `./src/components` |
+| Vue 2 | vueg 1 (vuegc 1) | Options API, JavaScript |
+| Vue 3 | vueg 2 (vuegc 2) | `<script setup>`, or Options API with `--options`; TypeScript with `--ts` |
+
+Both are installed with the plugin.
+
+## Errors
+
+On an invalid name, an unknown option, an unsupported style, a Vue 3 option in a Vue 2 project, or outside a Vue project, the command prints the reason, generates nothing, and exits with code `1`:
+
+```text
+$ npm run g:c -- Card --style styl
+Style styl not supported, use one of: css, scss, sass, less, stylus
+```
+
+## Migrating from 0.2
+
+1.0.0 generates **one `.vue` file** per component, with vueg, instead of 4 files:
+
+| 0.2 | 1.0 |
+|---|---|
+| `src/components/user-card/user-card.{vue,html,js,css}` | `src/components/UserCard.vue` |
+| `--script js\|ts` | `--ts` (Vue 3) |
+| `--view html` | removed: the template is in the `.vue` file |
+| `--root-dir ./src/components` | `--path components` (inside `src/`) |
+| Vue 2 class components (`vue-property-decorator`) | removed: Options API |
+| | `generate:view`, and the options above |
+
+After updating, the scripts added by 0.2 still pass `--script`, `--view` and `--root-dir`, and the command says they were removed. Run `vue invoke @ashetm/vue-cli-plugin-component-generator` to replace the scripts with the new ones. Components generated by 0.2 are left as they are.
+
+1.0.0 needs Node 20.19 or later.
 
 ## Development
 
 ```sh
-npm test                # tests (node:test)
-npm run test:coverage   # tests with coverage
+npm test                # tests (mocha + chai)
+npm run test:coverage   # tests with coverage (c8)
 ```
 
-Tests run the plugin with a fake Vue CLI API in temporary projects. The CI runs them on Node 18, 20, 22 and 24, on Ubuntu and Windows.
+Tests run the plugin with a fake Vue CLI API in temporary Vue 2 and Vue 3 projects, and compare what it generates with what vueg generates. The scripts added by `vue add` are also run through the shell, minimist and `npm run`, like in a real project. The CI runs them on Node 20, 22 and 24, on Ubuntu and Windows.
 
 ## Credits
 
