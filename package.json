@@ -1,6 +1,6 @@
 {
   "name": "@ashetm/vue-cli-plugin-component-generator",
-  "description": "Vue CLI plugin generating Vue 2 and Vue 3 components, with their template, script and style in separate files",
+  "description": "Vue CLI plugin generating single-file components with vueg, in Vue 2 and Vue 3 projects",
   "version": "0.2.0",
   "main": "index.js",
   "files": [
@@ -38,7 +38,9 @@
     "plugin"
   ],
   "dependencies": {
-    "prompts": "^2.4.2"
+    "prompts": "^2.4.2",
+    "vueg-vue2": "npm:@ashetm/vueg@^1.2.0",
+    "vueg-vue3": "npm:@ashetm/vueg@^2.1.0"
   },
   "homepage": "https://github.com/AsheTM/npm-vue-cli-plugin-component-generator#readme",
   "devDependencies": {

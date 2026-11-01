@@ -2,7 +2,6 @@
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
-const { expect } = require('chai')
 const prompts = require('prompts')
 
 const root = path.join(__dirname, '..', '..')
@@ -27,6 +26,21 @@ function createProject(pkg = {}) {
   return dir
 }
 
+// Entry of a Vue CLI project, for each Vue version
+const mainJs = {
+  2: "import Vue from 'vue'\nimport App from './App.vue'\n\nnew Vue({\n  render: h => h(App),\n}).$mount('#app')\n",
+  3: "import { createApp } from 'vue'\nimport App from './App.vue'\n\ncreateApp(App).mount('#app')\n"
+}
+
+// A temporary Vue CLI project of this Vue version (vue in its dependencies, src/main.js, src/App.vue)
+function createVueProject(vue = 3, pkg = { dependencies: { vue: vue === 2 ? '^2.6.14' : '^3.2.13' } }) {
+  const dir = createProject(pkg)
+  fs.mkdirSync(path.join(dir, 'src'))
+  fs.writeFileSync(path.join(dir, 'src', 'main.js'), mainJs[vue])
+  fs.writeFileSync(path.join(dir, 'src', 'App.vue'), '<template>\n  <div id="app"></div>\n</template>\n')
+  return dir
+}
+
 // Replace object[method] until the end of the test; returns the arguments of each call
 function stub(object, method) {
   const original = object[method]
@@ -34,16 +48,6 @@ function stub(object, method) {
   object[method] = (...args) => { calls.push(args) }
   cleanups.push(() => { object[method] = original })
   return calls
-}
-
-// The error a promise rejects with (fails if it resolves)
-async function rejection(promise) {
-  try {
-    await promise
-  } catch (err) {
-    return err
-  }
-  expect.fail('expected a rejection')
 }
 
 // Every file under dir, as { 'relative/path': content }
@@ -70,27 +74,34 @@ function runGenerator(answers) {
   return extended
 }
 
-// Run generate:component for the project, from cwd (the project by default);
-// promptAnswers are injected in the prompts (name, override)
+// Run generate:component for the project, from cwd (the project by default), like vue-cli-service does;
+// promptAnswers are injected in the prompts (name, override).
+// Returns the command, what it printed (log, warn, error: the lines) and its exit code
 async function runCommand(dir, args = {}, promptAnswers = [], cwd = dir) {
   let command
   const api = {
     registerCommand: (name, options, fn) => (command = { name, options, fn }),
-    resolve: (file) => path.resolve(dir, file),
-    getCwd: () => dir,
     service: { context: dir, pkg: JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')) }
   }
   require(path.join(root, 'index.js'))(api)
 
-  const previous = process.cwd()
+  const output = { log: stub(console, 'log'), warn: stub(console, 'warn'), error: stub(console, 'error') }
+  const previous = { cwd: process.cwd(), exitCode: process.exitCode }
   process.chdir(cwd)
+  process.exitCode = undefined
   try {
     prompts.inject(promptAnswers)
     await command.fn({ _: [], ...args })
+    return { command, output: lines(output), exitCode: process.exitCode }
   } finally {
-    process.chdir(previous)
+    process.chdir(previous.cwd)
+    process.exitCode = previous.exitCode
   }
-  return command
 }
 
-module.exports = { mochaHooks, createProject, stub, rejection, readTree, installQuestions, runGenerator, runCommand }
+// What each console method printed, one line per call
+function lines(output) {
+  return Object.fromEntries(Object.entries(output).map(([method, calls]) => [method, calls.map((args) => args.join(' '))]))
+}
+
+module.exports = { mochaHooks, createProject, createVueProject, stub, readTree, installQuestions, runGenerator, runCommand }
