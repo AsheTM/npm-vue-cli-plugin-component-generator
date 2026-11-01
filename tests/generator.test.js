@@ -1,50 +1,102 @@
 const { expect } = require('chai')
 const { execFileSync } = require('node:child_process')
-const { runGenerator } = require('./support/vue-cli')
+const minimist = require('minimist')
+const { createVueProject, addRouter, readTree, runGenerator, runCommand } = require('./support/vue-cli')
+
+// The arguments of a script, as the shell npm uses passes them to vue-cli-service (sh or cmd.exe)
+function scriptArgv(script) {
+  const args = script.replace(/^vue-cli-service /, '')
+  const printArgs = `${JSON.stringify(process.execPath)} -e "console.log(JSON.stringify(process.argv.slice(1)))" ${args}`
+  return JSON.parse(execFileSync(printArgs, { shell: true, encoding: 'utf8' }))
+}
+
+// The arguments vue-cli-service gives to the command of a script (bin/vue-cli-service.js, then Service.run)
+function commandArgs(script) {
+  const args = minimist(scriptArgv(script), {
+    boolean: ['modern', 'report', 'report-json', 'inline-vue', 'watch', 'open', 'copy', 'https', 'verbose']
+  })
+  const name = args._.shift()
+  return { name, args }
+}
 
 describe('vue add generator', () => {
-  it('adds the generate:component script and its g:c shortcut', () => {
-    const [{ scripts }] = runGenerator({ rootDir: './src/components', script: 'typescript', style: 'scss' })
+  it('adds the scripts of generate:component and generate:view, and their shortcuts', () => {
+    const [{ scripts }] = runGenerator({ path: 'components', style: 'scss', ts: true })
 
     expect(scripts).to.deep.equal({
-      'generate:component': 'vue-cli-service generate:component --style scss --script ts --view html --root-dir ./src/components',
-      'g:c': 'npm run generate:component'
+      'generate:component': 'vue-cli-service generate:component --style scss --ts',
+      'g:c': 'npm run generate:component',
+      'generate:view': 'vue-cli-service generate:view --style scss --ts',
+      'g:v': 'npm run generate:view'
     })
   })
 
   it('changes nothing else in the project package.json', () => {
-    const extended = runGenerator({ rootDir: './src/components' })
+    const extended = runGenerator({ path: 'components' })
 
     expect(extended).to.have.lengthOf(1)
     expect(Object.keys(extended[0])).to.deep.equal(['scripts'])
   })
 
-  it('uses JavaScript and CSS in a project without TypeScript or Sass (no script or style answer)', () => {
-    const [{ scripts }] = runGenerator({ rootDir: './src/components' })
+  it('uses CSS and JavaScript without the style and TypeScript answers', () => {
+    const [{ scripts }] = runGenerator({ path: 'components' })
 
-    expect(scripts['generate:component']).to.equal(
-      'vue-cli-service generate:component --style css --script js --view html --root-dir ./src/components')
+    expect(scripts['generate:component']).to.equal('vue-cli-service generate:component --style css')
+    expect(scripts['generate:view']).to.equal('vue-cli-service generate:view --style css')
   })
 
-  it('quotes a root directory with spaces', () => {
-    const [{ scripts }] = runGenerator({ rootDir: './src/my components' })
+  it('uses JavaScript when TypeScript is declined', () => {
+    const [{ scripts }] = runGenerator({ path: 'components', style: 'css', ts: false })
 
-    expect(scripts['generate:component']).to.match(/ --root-dir "\.\/src\/my components"$/)
+    expect(scripts['generate:component']).to.equal('vue-cli-service generate:component --style css')
   })
 
-  it('passes a quoted root directory to the command as one argument', () => {
-    const [{ scripts }] = runGenerator({ rootDir: './src/my components' })
-    // The command line after vue-cli-service, run through the shell npm uses
-    const args = scripts['generate:component'].replace(/^vue-cli-service /, '')
-    const printArgs = `${JSON.stringify(process.execPath)} -e "console.log(JSON.stringify(process.argv.slice(1)))" ${args}`
-    const argv = JSON.parse(execFileSync(printArgs, { shell: true, encoding: 'utf8' }))
+  const folders = [
+    { answer: 'components/ui', option: ' --path components/ui' },
+    { answer: './src/widgets', option: ' --path widgets' },
+    { answer: 'my components', option: ' --path "my components"' },
+    { answer: '', option: ' --path ""' }
+  ]
 
-    expect(argv.slice(-2)).to.deep.equal(['--root-dir', './src/my components'])
-  })
+  for (const { answer, option } of folders) {
+    it(`passes the components folder ${JSON.stringify(answer)} to generate:component only`, () => {
+      const [{ scripts }] = runGenerator({ path: answer, style: 'css' })
 
-  it('uses JavaScript when it is chosen in a TypeScript project', () => {
-    const [{ scripts }] = runGenerator({ rootDir: './src/components', script: 'javascript', style: 'css' })
+      expect(scripts['generate:component']).to.equal(`vue-cli-service generate:component${option} --style css`)
+      expect(scripts['generate:view']).to.equal('vue-cli-service generate:view --style css')
+    })
+  }
 
-    expect(scripts['generate:component']).to.match(/ --script js /)
+  describe('the scripts run through the shell and vue-cli-service', () => {
+    const cases = [
+      { label: 'Vue 2, CSS', vue: 2, answers: { path: 'components', style: 'css' },
+        component: 'src/components/Card.vue', style: '<style lang="css" scoped>', script: /export default \{/ },
+      { label: 'Vue 3, SCSS, TypeScript', vue: 3, answers: { path: 'components', style: 'scss', ts: true },
+        component: 'src/components/Card.vue', style: '<style lang="scss" scoped>', script: /<script setup lang="ts">/ },
+      { label: 'a folder with spaces', vue: 3, answers: { path: './src/my components', style: 'css' },
+        component: 'src/my components/Card.vue', style: '<style lang="css" scoped>', script: /<script setup>/ },
+      { label: 'components in src/', vue: 3, answers: { path: 'src', style: 'css' },
+        component: 'src/Card.vue', style: '<style lang="css" scoped>', script: /<script setup>/ }
+    ]
+
+    for (const { label, vue, answers, component, style, script } of cases) {
+      it(`generates the component and the view: ${label}`, async () => {
+        const [{ scripts }] = runGenerator(answers)
+        const dir = createVueProject(vue)
+        addRouter(dir, vue)
+
+        for (const [script, name] of [['generate:component', 'Card'], ['generate:view', 'Contact']]) {
+          const { name: command, args } = commandArgs(`${scripts[script]} ${name}`)
+          expect(command).to.equal(script)
+          const { output, exitCode } = await runCommand(dir, args, [], { name: command })
+          expect(output.error).to.deep.equal([])
+          expect(exitCode).to.equal(undefined)
+        }
+
+        const files = readTree(dir)
+        expect(files[component]).to.include(style).and.match(script)
+        expect(files['src/views/Contact.vue']).to.include(style).and.match(script)
+      })
+    }
   })
 })
