@@ -15,13 +15,13 @@ module.exports = (api, options) => {
   const common = ` --style ${style}${ts ? ' --ts' : ''}`
   const componentPath = folder === 'components' ? '' : ` --path ${quote(folder)}`
 
-  // Extending package
+  // Extending package; the shortcuts end with --, so the inner npm run passes the options on (npm run g:c -- Card --blank)
   api.extendPackage({
     scripts: {
       'generate:component': `vue-cli-service generate:component${componentPath}${common}`,
-      'g:c': 'npm run generate:component',
+      'g:c': 'npm run generate:component --',
       'generate:view': `vue-cli-service generate:view${common}`,
-      'g:v': 'npm run generate:view'
+      'g:v': 'npm run generate:view --'
     }
   })
 }

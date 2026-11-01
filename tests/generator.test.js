@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const { execFileSync } = require('node:child_process')
 const minimist = require('minimist')
-const { createVueProject, addRouter, readTree, runGenerator, runCommand } = require('./support/vue-cli')
+const { createProject, createVueProject, addRouter, readTree, runGenerator, runCommand } = require('./support/vue-cli')
 
 // The arguments of a script, as the shell npm uses passes them to vue-cli-service (sh or cmd.exe)
 function scriptArgv(script) {
@@ -25,9 +25,9 @@ describe('vue add generator', () => {
 
     expect(scripts).to.deep.equal({
       'generate:component': 'vue-cli-service generate:component --style scss --ts',
-      'g:c': 'npm run generate:component',
+      'g:c': 'npm run generate:component --',
       'generate:view': 'vue-cli-service generate:view --style scss --ts',
-      'g:v': 'npm run generate:view'
+      'g:v': 'npm run generate:view --'
     })
   })
 
@@ -64,6 +64,20 @@ describe('vue add generator', () => {
 
       expect(scripts['generate:component']).to.equal(`vue-cli-service generate:component${option} --style css`)
       expect(scripts['generate:view']).to.equal('vue-cli-service generate:view --style css')
+    })
+  }
+
+  for (const [shortcut, script] of [['g:c', 'generate:component'], ['g:v', 'generate:view']]) {
+    it(`passes everything after -- on to ${script} through npm run ${shortcut}`, () => {
+      const [{ scripts }] = runGenerator({ path: 'components', style: 'css' })
+      // The shortcut, and the command replaced by a script printing its arguments (npm run puts node in the PATH)
+      const printArgs = 'node -e "console.log(JSON.stringify(process.argv.slice(1)))" --'
+      const dir = createProject({ scripts: { [shortcut]: scripts[shortcut], [script]: `${printArgs} --style css` } })
+
+      const stdout = execFileSync(`npm run ${shortcut} -- Card --props title,items --blank`, { cwd: dir, shell: true, encoding: 'utf8' })
+      const argv = JSON.parse(stdout.trim().split('\n').pop())
+
+      expect(argv).to.deep.equal(['--style', 'css', 'Card', '--props', 'title,items', '--blank'])
     })
   }
 

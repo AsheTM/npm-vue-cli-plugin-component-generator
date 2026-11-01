@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Node 20.19 or later** (`^20.19.0 || >=22.12.0`): Node 18 has been end-of-life since April 2025. CI runs on Node 20, 22 and 24 ([#44](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/44)).
 - Tests run with mocha and chai (`npm test`), and the coverage with c8 (`npm run test:coverage`), instead of the built-in `node:test` runner ([#44](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/44)).
 
+### Fixed
+- The `g:c` shortcut passes the options on: `npm run g:c -- Card --props title` generated `Card` without its props, since the inner `npm run` took `--props` as its own option. The shortcuts are now `npm run generate:component --` and `npm run generate:view --` ([#54](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/54)).
+
 ## [0.2.0] - 2026-11-01
 
 Fixes: `vue add` works in JavaScript projects, the name works on the command line, and the script matches the project's Vue version. Generated files change for names like `UserCard` (now `user-card/user-card.*`) and for Vue 2 projects.
