@@ -1,6 +1,7 @@
 
 module.exports = packageJson => {
-  const devDependencies = packageJson.devDependencies || {}
+  // Installed packages, wherever they are listed
+  const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies }
 
   let prompts = [
     {
@@ -18,7 +19,7 @@ module.exports = packageJson => {
     }*/
   ]
 
-  if('typescript' in devDependencies) {
+  if('typescript' in dependencies) {
     prompts = [
       ...prompts, {
         type: 'list',
@@ -33,11 +34,7 @@ module.exports = packageJson => {
     ]
   }
 
-  if(
-    'node-sass' in devDependencies ||
-    'dart-sass' in devDependencies ||
-    'sass-loader' in devDependencies
-  ) {
+  if(['sass', 'node-sass', 'dart-sass', 'sass-loader'].some((name) => name in dependencies)) {
     prompts = [
       ...prompts, {
         type: 'list',
