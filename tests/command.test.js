@@ -39,6 +39,39 @@ describe('generate:component', () => {
     assert.ok(readTree(dir)['src/components/admin/user-card/user-card.vue'])
   })
 
+  it('generates the component named on the command line, without prompting', async (t) => {
+    const dir = createProject(t)
+    await runCommand(t, dir, { ...options, _: ['admin/user-card'] })
+
+    assert.deepEqual(Object.keys(readTree(dir)).filter((file) => file.startsWith('src/')).sort(), [
+      'src/components/admin/user-card/user-card.css',
+      'src/components/admin/user-card/user-card.html',
+      'src/components/admin/user-card/user-card.js',
+      'src/components/admin/user-card/user-card.vue'
+    ])
+  })
+
+  it('works without the options added by vue add (defaults: js, css, html, ./src/components)', async (t) => {
+    const dir = createProject(t)
+    await runCommand(t, dir, { _: ['user-card'] })
+
+    assert.deepEqual(Object.keys(readTree(dir)).filter((file) => file.startsWith('src/')).sort(), [
+      'src/components/user-card/user-card.css',
+      'src/components/user-card/user-card.html',
+      'src/components/user-card/user-card.js',
+      'src/components/user-card/user-card.vue'
+    ])
+  })
+
+  it('generates in the project, whatever the current directory', async (t) => {
+    const dir = createProject(t)
+    const elsewhere = createProject(t)
+    await runCommand(t, dir, { ...options, _: ['user-card'] }, [], elsewhere)
+
+    assert.ok(readTree(dir)['src/components/user-card/user-card.vue'])
+    assert.deepEqual(Object.keys(readTree(elsewhere)), ['package.json'])
+  })
+
   it('uses the script and style languages of the options', async (t) => {
     const dir = createProject(t)
     await runCommand(t, dir, { ...options, script: 'ts', style: 'scss' }, ['user-card'])

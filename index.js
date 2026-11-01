@@ -6,39 +6,40 @@ module.exports = api => {
   const cmd = 'generate:component'
 
   const description = 'Generate component'
-  const usage = `vue-cli-service ${cmd} [options]`
+  const usage = `vue-cli-service ${cmd} [options] [name]`
   const options = {
-    '--script': 'langage for script',
-    '--style': 'langage for style',
-    '--view': 'langage for view (Default: \'html\')',
+    '--script': 'language for script (Default: \'js\')',
+    '--style': 'language for style (Default: \'css\')',
+    '--view': 'language for view (Default: \'html\')',
     '--root-dir': 'root directory (Default: \'./src/components\')'
   }
 
   api.registerCommand(
     cmd,
     { description, usage, options },
-    async ({ _, script, style, view, 'root-dir': rootDir }) => {
-      let [componentName] = _
-      let foldersPath = undefined
+    async ({ _, script = 'js', style = 'css', view = 'html', 'root-dir': rootDir = './src/components' }) => {
+      // The name comes from the command line or the prompt, with optional sub-folders: admin/user-card
+      let [relativeComponentName] = _
 
       const vueExtension    = 'vue'
       const viewExtension   = view
       const scriptExtension = script
       const styleExtension  = style
 
-      if(!componentName) {
-        const { relativeComponentName } = await prompts([{
+      if(!relativeComponentName) {
+        ({ relativeComponentName } = await prompts([{
           type: 'text',
           name: 'relativeComponentName',
           message: 'What\'s your component name?'
-        }])
-        const pathFile = relativeComponentName.split(/\\|\//).filter(Boolean)
-
-        componentName = pathFile[pathFile.length - 1]
-        foldersPath = path.join(rootDir, ...pathFile.slice(0, pathFile.length - 1))
-
-        fs.mkdirSync(foldersPath, { recursive: true })
+        }]))
       }
+
+      const pathFile = relativeComponentName.split(/\\|\//).filter(Boolean)
+
+      let componentName = pathFile[pathFile.length - 1]
+      const foldersPath = api.resolve(path.join(rootDir, ...pathFile.slice(0, pathFile.length - 1)))
+
+      fs.mkdirSync(foldersPath, { recursive: true })
 
       componentName = componentName.toLowerCase()
 

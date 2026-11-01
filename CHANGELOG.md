@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `vue add` no longer crashes in JavaScript projects (`Cannot read properties of undefined (reading '0')`): without TypeScript, the language question isn't asked and the components are in JavaScript ([#4](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/4)).
+- `generate:component user-card` (the name on the command line, with optional sub-folders: `admin/user-card`) no longer crashes (`The "path" argument must be of type string`), and the command works without its options, with defaults: `--script js`, `--style css`, `--view html`, `--root-dir ./src/components`. The component is generated in the project, whatever the current directory ([#5](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/5)).
 
 ## [0.1.1] - 2021-06-25
 
