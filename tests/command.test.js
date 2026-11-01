@@ -211,6 +211,17 @@ describe('generate:component', () => {
       })
     }
 
+    it('ignores vue-cli-service\'s own options (its boolean flags are always there)', async () => {
+      const dir = createVueProject()
+      const service = { modern: false, report: false, 'report-json': false, 'inline-vue': false, watch: false,
+        open: false, copy: false, https: false, verbose: false, mode: 'development', 'skip-plugins': 'eslint' }
+      const { output, exitCode } = await runCommand(dir, { _: ['Card'], ...service })
+
+      expect(output.error).to.deep.equal([])
+      expect(exitCode).to.equal(undefined)
+      expect(generated(dir)).to.deep.equal(['src/components/Card.vue'])
+    })
+
     it('reads the name after a flag without value (--blank Card)', async () => {
       const dir = createVueProject()
       await runCommand(dir, { blank: 'Card', 'dry-run': 'false' })

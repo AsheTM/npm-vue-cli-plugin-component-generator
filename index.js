@@ -43,6 +43,8 @@ const booleanFlags = ['scoped', 'module', 'ts', 'options', 'blank', 'force', 'dr
 const vue3Flags    = ['emits', 'ts', 'options']
 // Options of 0.2, replaced by single-file components in 1.0
 const removedFlags = ['script', 'view', 'root-dir']
+// vue-cli-service's own options: its boolean flags are in every command's arguments (false when not given)
+const serviceFlags = ['modern', 'report', 'report-json', 'inline-vue', 'watch', 'open', 'copy', 'https', 'verbose', 'mode', 'skip-plugins']
 
 // Error message for an invalid name (optional sub-folders, then a name starting with a letter), undefined if valid
 function validateName(relativeName, kind = 'component') {
@@ -91,7 +93,8 @@ function list(flag, value) {
 
 // vueg's options from the command line arguments (minimist), and the relative name if given
 function vuegOptions(cmd, args, vue) {
-  const { _: names = [], ...flags } = args
+  const { _: names = [], ...allFlags } = args
+  const flags = Object.fromEntries(Object.entries(allFlags).filter(([flag]) => !serviceFlags.includes(flag)))
   const rest = [...names]
 
   for (const flag of booleanFlags) {
