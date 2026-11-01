@@ -130,7 +130,7 @@ describe('generate:component', () => {
     it('generates in the project, whatever the current directory', async () => {
       const dir = createVueProject()
       const elsewhere = createProject()
-      await runCommand(dir, { _: ['Card'] }, [], elsewhere)
+      await runCommand(dir, { _: ['Card'] }, [], { cwd: elsewhere })
 
       expect(generated(dir)).to.deep.equal(['src/components/Card.vue'])
       expect(Object.keys(readTree(elsewhere))).to.deep.equal(['package.json'])
@@ -232,7 +232,7 @@ describe('generate:component', () => {
           'Run "vue invoke @ashetm/component-generator" to update the scripts of package.json' },
       { label: 'an unknown option', args: { color: 'red', x: true },
         error: 'Unknown option --color, --x, see "vue-cli-service help generate:component"' },
-      { label: '--path without a folder', args: { path: true }, error: '--path needs a folder inside src/, e.g. --path components/ui' },
+      { label: '--path without a folder', args: { path: true }, error: '--path needs a folder inside src/, e.g. --path admin' },
       { label: '--style without a value', args: { style: true }, error: '--style needs a value: css, scss, sass, less or stylus' },
       { label: '--props without names', args: { props: true }, error: '--props needs comma-separated names, e.g. --props title,items' },
       { label: 'an unsupported style (vueg\'s message)', args: { style: 'styl' }, error: 'Style styl not supported, use one of: css, scss, sass, less, stylus' },

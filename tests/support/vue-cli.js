@@ -41,6 +41,67 @@ function createVueProject(vue = 3, pkg = { dependencies: { vue: vue === 2 ? '^2.
   return dir
 }
 
+// src/router/index.js of a Vue CLI 5 project, for each Vue version
+const routers = {
+  2: `import Vue from 'vue'
+import VueRouter from 'vue-router'
+import HomeView from '../views/HomeView.vue'
+
+Vue.use(VueRouter)
+
+const routes = [
+  {
+    path: '/',
+    name: 'home',
+    component: HomeView
+  },
+  {
+    path: '/about',
+    name: 'about',
+    component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
+  }
+]
+
+const router = new VueRouter({
+  mode: 'history',
+  base: process.env.BASE_URL,
+  routes
+})
+
+export default router
+`,
+  3: `import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from '../views/HomeView.vue'
+
+const routes = [
+  {
+    path: '/',
+    name: 'home',
+    component: HomeView
+  },
+  {
+    path: '/about',
+    name: 'about',
+    component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(process.env.BASE_URL),
+  routes
+})
+
+export default router
+`
+}
+
+// Add the router of a Vue CLI project of this Vue version, returns its content
+function addRouter(dir, vue = 3) {
+  fs.mkdirSync(path.join(dir, 'src', 'router'))
+  fs.writeFileSync(path.join(dir, 'src', 'router', 'index.js'), routers[vue])
+  return routers[vue]
+}
+
 // Replace object[method] until the end of the test; returns the arguments of each call
 function stub(object, method) {
   const original = object[method]
@@ -74,16 +135,17 @@ function runGenerator(answers) {
   return extended
 }
 
-// Run generate:component for the project, from cwd (the project by default), like vue-cli-service does;
-// promptAnswers are injected in the prompts (name, override).
+// Run a command of the plugin (generate:component by default) for the project, from cwd (the project by default),
+// like vue-cli-service does; promptAnswers are injected in the prompts (name, override).
 // Returns the command, what it printed (log, warn, error: the lines) and its exit code
-async function runCommand(dir, args = {}, promptAnswers = [], cwd = dir) {
-  let command
+async function runCommand(dir, args = {}, promptAnswers = [], { cwd = dir, name = 'generate:component' } = {}) {
+  const commands = {}
   const api = {
-    registerCommand: (name, options, fn) => (command = { name, options, fn }),
+    registerCommand: (name, options, fn) => (commands[name] = { name, options, fn }),
     service: { context: dir, pkg: JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')) }
   }
   require(path.join(root, 'index.js'))(api)
+  const command = commands[name]
 
   const output = { log: stub(console, 'log'), warn: stub(console, 'warn'), error: stub(console, 'error') }
   const previous = { cwd: process.cwd(), exitCode: process.exitCode }
@@ -104,4 +166,4 @@ function lines(output) {
   return Object.fromEntries(Object.entries(output).map(([method, calls]) => [method, calls.map((args) => args.join(' '))]))
 }
 
-module.exports = { mochaHooks, createProject, createVueProject, stub, readTree, installQuestions, runGenerator, runCommand }
+module.exports = { mochaHooks, createProject, createVueProject, addRouter, stub, readTree, installQuestions, runGenerator, runCommand }

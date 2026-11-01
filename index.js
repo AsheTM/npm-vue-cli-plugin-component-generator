@@ -21,6 +21,23 @@ const componentOptions = {
   '--dry-run': 'print the component instead of writing it'
 }
 
+// Options of generate:view: the component's, in src/views/, and the route
+const { '--path': componentPath, ...sharedOptions } = componentOptions
+const viewOptions = {
+  '--path': 'sub-folder of src/views/ (Default: src/views/)',
+  '--route': 'path of the route, starting with / (Default: /<path>/<name in kebab-case>)',
+  '--no-route': 'generate the view only, leave the router as is',
+  ...sharedOptions,
+  '--force': 'overwrite the view if it exists',
+  '--dry-run': 'print the view and its route instead of writing them'
+}
+
+// What each command generates, with which vueg function, where by default
+const commands = {
+  'generate:component': { kind: 'component', options: componentOptions, folder: 'components', flags: [] },
+  'generate:view': { kind: 'view', options: viewOptions, folder: '', flags: ['route'] }
+}
+
 // Flags without a value: minimist reads "--blank UserCard" as blank = 'UserCard'
 const booleanFlags = ['scoped', 'module', 'ts', 'options', 'blank', 'force', 'dry-run']
 const vue3Flags    = ['emits', 'ts', 'options']
@@ -28,18 +45,18 @@ const vue3Flags    = ['emits', 'ts', 'options']
 const removedFlags = ['script', 'view', 'root-dir']
 
 // Error message for an invalid name (optional sub-folders, then a name starting with a letter), undefined if valid
-function validateName(relativeName) {
+function validateName(relativeName, kind = 'component') {
   const parts = String(relativeName).split(/\\|\//).filter(Boolean)
   const name = parts[parts.length - 1]
 
   if(!name || !name.trim()) {
-    return 'A component name is required'
+    return `A ${kind} name is required`
   }
   if(!/^[A-Za-z][\w-]*(\.vue)?$/.test(name)) {
-    return `Invalid component name "${name}": letters, digits, - and _ only, starting with a letter`
+    return `Invalid ${kind} name "${name}": letters, digits, - and _ only, starting with a letter`
   }
   if(parts.some((part) => part === '.' || part === '..')) {
-    return `Invalid component path "${relativeName}": . and .. are not allowed`
+    return `Invalid ${kind} path "${relativeName}": . and .. are not allowed`
   }
 }
 
@@ -72,8 +89,8 @@ function list(flag, value) {
   return value.split(',').map((name) => name.trim()).filter(Boolean)
 }
 
-// vueg's options from the command line arguments (minimist), and the component's relative name if given
-function vuegOptions(args, vue) {
+// vueg's options from the command line arguments (minimist), and the relative name if given
+function vuegOptions(cmd, args, vue) {
   const { _: names = [], ...flags } = args
   const rest = [...names]
 
@@ -95,10 +112,10 @@ function vuegOptions(args, vue) {
     throw new Error(`${vue3Only.map((flag) => `--${flag}`).join(', ')}: Vue 3 only, this project uses Vue ${vue}`)
   }
 
-  const known = ['path', 'style', 'props', 'template', 'script', ...booleanFlags, ...vue3Flags]
+  const known = ['path', 'style', 'props', 'template', 'script', ...booleanFlags, ...vue3Flags, ...commands[cmd].flags]
   const unknown = Object.keys(flags).filter((flag) => !known.includes(flag))
   if(unknown.length) {
-    throw new Error(`Unknown option ${unknown.map((flag) => `--${flag}`).join(', ')}, see "vue-cli-service help generate:component"`)
+    throw new Error(`Unknown option ${unknown.map((flag) => `--${flag}`).join(', ')}, see "vue-cli-service help ${cmd}"`)
   }
 
   const isTrue = (value) => value === true || value === 'true'
@@ -106,7 +123,7 @@ function vuegOptions(args, vue) {
 
   if('path' in flags) {
     if(typeof flags.path !== 'string') {
-      throw new Error('--path needs a folder inside src/, e.g. --path components/ui')
+      throw new Error(`--path needs a folder inside src/${commands[cmd].kind === 'view' ? 'views/' : ''}, e.g. --path admin`)
     }
     options.path = flags.path
   }
@@ -117,6 +134,14 @@ function vuegOptions(args, vue) {
       throw new Error('--style needs a value: css, scss, sass, less or stylus')
     }
     options.style = flags.style
+  }
+  if(flags.route === false) {
+    options.route = false
+  } else if('route' in flags) {
+    if(typeof flags.route !== 'string') {
+      throw new Error('--route needs a path starting with "/", e.g. --route /admin/users')
+    }
+    options.route = flags.route
   }
   if(flags.template === false) options.noTemplate = true
   if(flags.script === false) options.noScript = true
@@ -133,87 +158,105 @@ function vuegOptions(args, vue) {
   return { options, relativeName: rest[0] }
 }
 
-module.exports = api => {
-  const cmd = 'generate:component'
+// Generate a component or a view with vueg; errors are printed, with exit code 1
+async function generate(api, cmd, args) {
+  const { kind, folder } = commands[cmd]
+  const pkg = api.service.pkg || {}
+  const context = api.service.context
+  let vueg
 
-  const description = 'Generate a single-file component with vueg'
-  const usage = `vue-cli-service ${cmd} [options] [name]`
+  try {
+    const vue = vueVersion(context, pkg)
+    if(!vuegPackages[vue]) {
+      throw new Error(`Vue ${vue} is not supported: Vue 2 and Vue 3 only`)
+    }
+    vueg = require(vuegPackages[vue])
+
+    let { options, relativeName } = vuegOptions(cmd, args, vue)
+
+    // The name comes from the command line or the prompt, with optional sub-folders: admin/UserCard
+    if(relativeName === undefined) {
+      ({ relativeName } = await prompts([{
+        type: 'text',
+        name: 'relativeName',
+        message: `What's your ${kind} name?`,
+        validate: (name) => validateName(name, kind) || true
+      }]))
+
+      // Cancelled (Ctrl+C, Escape): no answer
+      if(relativeName === undefined) {
+        console.log(`Cancelled: no ${kind} generated`)
+        return
+      }
+    }
+
+    const error = validateName(relativeName, kind)
+    if(error) {
+      throw new Error(error)
+    }
+
+    const parts = String(relativeName).split(/\\|\//).filter(Boolean)
+    const name = pascalCase(parts.pop())
+    const generated = {
+      ...options,
+      name,
+      path: path.posix.join(options.path ?? folder, ...parts),
+      cwd: context
+    }
+
+    if(kind === 'view') {
+      // An existing view isn't overwritten without --force: its route usually exists too (--no-route)
+      vueg.view(generated)
+      return
+    }
+
+    try {
+      vueg.component(generated)
+    } catch (err) {
+      if(err?.code !== 'EEXIST' || generated.dryRun) {
+        throw err
+      }
+
+      // Ask before overwriting an existing component
+      console.warn(`Component ${name} exists!`)
+
+      const { override } = await prompts([{
+        type: 'confirm',
+        name: 'override',
+        message: 'Override it?',
+        initial: false
+      }])
+
+      if(override) {
+        vueg.component({ ...generated, force: true })
+      }
+    }
+  } catch (err) {
+    // vuegc 2 refuses a Vue 2 entry (new Vue): package.json has the wrong Vue version
+    const message = err?.errno === 0x000A
+      ? `src/main.js is a Vue 2 entry, but package.json has Vue ${vueVersion(context, pkg)}: check the version of vue`
+      : vueg ? vueg.errorMessage(err) : err.message
+    console.error(message)
+    process.exitCode = 1
+  }
+}
+
+module.exports = api => {
+  api.registerCommand(
+    'generate:component',
+    {
+      description: 'Generate a single-file component with vueg',
+      usage: 'vue-cli-service generate:component [options] [name]',
+      options: componentOptions
+    },
+    (args) => generate(api, 'generate:component', args))
 
   api.registerCommand(
-    cmd,
-    { description, usage, options: componentOptions },
-    async (args) => {
-      const pkg = api.service.pkg || {}
-      const context = api.service.context
-      let vueg
-
-      try {
-        const vue = vueVersion(context, pkg)
-        if(!vuegPackages[vue]) {
-          throw new Error(`Vue ${vue} is not supported: Vue 2 and Vue 3 only`)
-        }
-        vueg = require(vuegPackages[vue])
-
-        let { options, relativeName } = vuegOptions(args, vue)
-
-        // The name comes from the command line or the prompt, with optional sub-folders: admin/UserCard
-        if(relativeName === undefined) {
-          ({ relativeName } = await prompts([{
-            type: 'text',
-            name: 'relativeName',
-            message: 'What\'s your component name?',
-            validate: (name) => validateName(name) || true
-          }]))
-
-          // Cancelled (Ctrl+C, Escape): no answer
-          if(relativeName === undefined) {
-            console.log('Cancelled: no component generated')
-            return
-          }
-        }
-
-        const error = validateName(relativeName)
-        if(error) {
-          throw new Error(error)
-        }
-
-        const parts = String(relativeName).split(/\\|\//).filter(Boolean)
-        const name = pascalCase(parts.pop())
-        const component = {
-          ...options,
-          name,
-          path: path.posix.join(options.path ?? 'components', ...parts),
-          cwd: context
-        }
-
-        try {
-          vueg.component(component)
-        } catch (err) {
-          if(err?.code !== 'EEXIST' || component.dryRun) {
-            throw err
-          }
-
-          // Ask before overwriting an existing component
-          console.warn(`Component ${name} exists!`)
-
-          const { override } = await prompts([{
-            type: 'confirm',
-            name: 'override',
-            message: 'Override it?',
-            initial: false
-          }])
-
-          if(override) {
-            vueg.component({ ...component, force: true })
-          }
-        }
-      } catch (err) {
-        // vuegc 2 refuses a Vue 2 entry (new Vue): package.json has the wrong Vue version
-        const message = err?.errno === 0x000A
-          ? `src/main.js is a Vue 2 entry, but package.json has Vue ${vueVersion(context, pkg)}: check the version of vue`
-          : vueg ? vueg.errorMessage(err) : err.message
-        console.error(message)
-        process.exitCode = 1
-      }
-    })
+    'generate:view',
+    {
+      description: 'Generate a view in src/views/ and add its route, with vueg',
+      usage: 'vue-cli-service generate:view [options] [name]',
+      options: viewOptions
+    },
+    (args) => generate(api, 'generate:view', args))
 }
