@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A project `.npmrc` pins the registry to registry.npmjs.org, also for `@ashetm` packages: installs, the lock file and `npm publish` no longer depend on the developer's own npm config (no token in it; npm never packs it) ([#3](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/3)).
 - CHANGELOG in Keep a Changelog format ([#19](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/19)).
 
+### Fixed
+- `vue add` no longer crashes in JavaScript projects (`Cannot read properties of undefined (reading '0')`): without TypeScript, the language question isn't asked and the components are in JavaScript ([#4](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/4)).
+
 ## [0.1.1] - 2021-06-25
 
 Same code as 0.1.0, republished.
