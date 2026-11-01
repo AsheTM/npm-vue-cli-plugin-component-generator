@@ -115,7 +115,44 @@ describe('generate:component', () => {
     await runCommand(t, dir, { ...options, script: 'ts', style: 'scss' }, ['user-card'])
 
     const files = readTree(dir)
-    assert.match(files['src/components/user-card/user-card.ts'], /export default class UserCardComponent/)
+    assert.match(files['src/components/user-card/user-card.ts'], /export default defineComponent\(/)
     assert.match(files['src/components/user-card/user-card.scss'], /\.UserCard\{\}/)
+  })
+
+  const vue3 = "import { defineComponent } from 'vue'\n\nexport default defineComponent({\n  name: 'UserCardComponent'\n})\n"
+  const scripts = [
+    { project: 'Vue 3', dependencies: { vue: '^3.2.13' }, script: 'js', expected: vue3 },
+    { project: 'Vue 3', dependencies: { vue: '^3.2.13' }, script: 'ts', expected: vue3 },
+    { project: 'no Vue dependency (Vue 3)', dependencies: {}, script: 'ts', expected: vue3 },
+    { project: 'Vue 2', dependencies: { vue: '^2.6.14' }, script: 'js', expected: "export default {\n  name: 'UserCardComponent'\n}\n" },
+    { project: 'Vue 2', dependencies: { vue: '~2.7.16' }, script: 'ts', expected: "import Vue from 'vue'\n\nexport default Vue.extend({\n  name: 'UserCardComponent'\n})\n" },
+    {
+      project: 'Vue 2 with vue-property-decorator',
+      dependencies: { vue: '^2.6.14', 'vue-property-decorator': '^9.1.2' },
+      script: 'ts',
+      expected: "import { Component, Vue } from 'vue-property-decorator'\n\n@Component\nexport default class UserCardComponent extends Vue {}\n"
+    },
+    {
+      project: 'Vue 2 with vue-property-decorator',
+      dependencies: { vue: '^2.6.14', 'vue-property-decorator': '^9.1.2' },
+      script: 'js',
+      expected: "export default {\n  name: 'UserCardComponent'\n}\n"
+    }
+  ]
+
+  for (const { project, dependencies, script, expected } of scripts) {
+    it(`generates the ${script} script of a ${project} project`, async (t) => {
+      const dir = createProject(t, { dependencies })
+      await runCommand(t, dir, { ...options, script, _: ['user-card'] })
+
+      assert.equal(readTree(dir)[`src/components/user-card/user-card.${script}`], expected)
+    })
+  }
+
+  it('reads Vue from devDependencies too', async (t) => {
+    const dir = createProject(t, { devDependencies: { vue: '2.6.14' } })
+    await runCommand(t, dir, { ...options, _: ['user-card'] })
+
+    assert.doesNotMatch(readTree(dir)['src/components/user-card/user-card.js'], /defineComponent/)
   })
 })

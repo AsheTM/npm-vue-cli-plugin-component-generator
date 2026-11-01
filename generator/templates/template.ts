@@ -1,6 +1,5 @@
-// @ts-ignore
-import { Component, Vue } from 'vue-property-decorator'
+import { defineComponent } from 'vue'
 
-@Component({ })
-// @ts-ignore
-export default class PLACEHOLDER extends Vue { }
+export default defineComponent({
+  name: 'PLACEHOLDER'
+})
