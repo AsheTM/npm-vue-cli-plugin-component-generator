@@ -151,7 +151,7 @@ Both commands take the same options. The scripts added at installation already p
 | `--module` | CSS modules: `<style module>` instead of `scoped` | |
 | `--props` | Comma-separated prop names: `--props title,items` | |
 | `--blank` | Empty template and style, without the demo content | |
-| `--no-template`, `--no-script`, `--no-style` | Leave the section out | |
+| `--no-template`, `--no-script`, `--no-style` | Leave the section out. In Vue 3, without the template, the script needs something in it: `--props`, `--emits` or `--options` | |
 | `--force` | Overwrite the component or view without asking | |
 | `--dry-run` | Print the component (and the route) instead of writing it | |
 | `--route` | `generate:view` only: path of the route, starting with `/` | `/<path>/<name in kebab-case>` |
@@ -164,6 +164,11 @@ Both commands take the same options. The scripts added at installation already p
 | `--emits` | Comma-separated event names: `--emits close,save` |
 | `--ts` | `<script setup lang="ts">` |
 | `--options` | Options API (`export default { … }`) instead of `<script setup>` |
+| `--template pug` | Template in Pug: `<template lang="pug">` (the project must compile Pug: see [vue-loader's pre-processors](https://vue-loader.vuejs.org/guide/pre-processors.html#pug)) |
+| `--test` | Also write a [Vitest](https://vitest.dev) test next to the component or view: `UserCard.spec.js` (`.spec.ts` with `--ts`) |
+| `--story` | Also write a [Storybook](https://storybook.js.org) story next to it: `UserCard.stories.js` (`.stories.ts` with `--ts`) |
+
+`npm run g:c -- admin/user-card --props title --test --story` writes `src/components/admin/UserCard.vue`, `UserCard.spec.js` and `UserCard.stories.js`. The test mounts the component with Vue Test Utils; the story has its props as args. See [vuegc](https://github.com/AsheTM/npm-vuegc#test) for their content. When the project lacks Vitest, Vue Test Utils, Storybook or Pug, the command says what to install. An existing test or story is overwritten only after confirming, like the component.
 
 `vue-cli-service help generate:component` and `vue-cli-service help generate:view` list them too.
 

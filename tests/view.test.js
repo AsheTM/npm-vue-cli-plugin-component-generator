@@ -37,7 +37,7 @@ describe('generate:view', () => {
     expect(command.options.usage).to.equal('vue-cli-service generate:view [options] [name]')
     expect(Object.keys(command.options.options)).to.deep.equal([
       '--path', '--route', '--no-route', '--style', '--scoped', '--module', '--props', '--emits', '--ts', '--options',
-      '--blank', '--no-template', '--force', '--dry-run'
+      '--template', '--test', '--story', '--blank', '--no-template', '--force', '--dry-run'
     ])
   })
 
@@ -69,6 +69,19 @@ describe('generate:view', () => {
       })
     })
   }
+
+  it('writes the view\'s test and story next to it, in Vue 3', async () => {
+    const dir = createVueProject(3)
+    addRouter(dir, 3)
+    const { output, exitCode } = await runView(dir, { _: ['admin/user-profile'], test: true, story: true, template: 'pug' })
+
+    expect(views(dir)).to.deep.equal([
+      'src/views/admin/UserProfile.spec.js', 'src/views/admin/UserProfile.stories.js', 'src/views/admin/UserProfile.vue'
+    ])
+    expect(read(dir, 'src/views/admin/UserProfile.vue')).to.include('<template lang="pug">')
+    expect(output.log).to.include('> Route /admin/user-profile added to src/router/index.js')
+    expect(exitCode).to.equal(undefined)
+  })
 
   it('leaves the router as is with --no-route', async () => {
     const dir = createVueProject()
