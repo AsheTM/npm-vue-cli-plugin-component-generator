@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `generate:service [name]`: a service in `src/services/`, a module of API calls with `fetch` (`getAll`, `getById`, `create`, `update`, `remove` on `/api/<name>`), like `vueg service`, with `--path`, `--ts`, `--test` (a Vitest test), `--blank`, `--force` and `--dry-run`. The service has no Vue code: it works the same in Vue 2 and Vue 3 projects. File names in kebab-case (`UserProfile` → `user-profile.service.js`); an existing service or test is overwritten only after confirming. `vue add` adds the `generate:service` and `g:s` scripts (`--ts` from the TypeScript answer); in an installed project, `vue invoke @ashetm/vue-cli-plugin-component-generator` adds them ([#63](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/63)).
+
+### Changed
+- vueg `^2.3.0`, which has `service()` ([#63](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/63)).
+
 ## [1.1.0] - 2026-11-02
 
 A test, a story and a Pug template with components and views in Vue 3 projects, on vueg 2.2: `--test`, `--story`, `--template pug`.
