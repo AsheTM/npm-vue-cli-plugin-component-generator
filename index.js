@@ -15,6 +15,9 @@ const componentOptions = {
   '--emits': 'comma-separated event names, e.g. \'close,save\' (Vue 3)',
   '--ts': 'TypeScript <script> (Vue 3)',
   '--options': 'Options API instead of <script setup> (Vue 3)',
+  '--template': 'template language, html or pug (Vue 3) (Default: \'html\')',
+  '--test': 'also write a Vitest test next to it, Name.spec.js (Vue 3)',
+  '--story': 'also write a Storybook story next to it, Name.stories.js (Vue 3)',
   '--blank': 'empty template and style, without the demo content',
   '--no-template': 'leave the <template> section out (also --no-script, --no-style)',
   '--force': 'overwrite the component without asking',
@@ -39,8 +42,8 @@ const commands = {
 }
 
 // Flags without a value: minimist reads "--blank UserCard" as blank = 'UserCard'
-const booleanFlags = ['scoped', 'module', 'ts', 'options', 'blank', 'force', 'dry-run']
-const vue3Flags    = ['emits', 'ts', 'options']
+const booleanFlags = ['scoped', 'module', 'ts', 'options', 'blank', 'force', 'dry-run', 'test', 'story']
+const vue3Flags    = ['emits', 'ts', 'options', 'test', 'story']
 // Options of 0.2, replaced by single-file components in 1.0
 const removedFlags = ['script', 'view', 'root-dir']
 // vue-cli-service's own options: its boolean flags are in every command's arguments (false when not given)
@@ -117,7 +120,9 @@ function vuegOptions(cmd, args, vue) {
       'Run "vue invoke @ashetm/component-generator" to update the scripts of package.json')
   }
 
-  const vue3Only = vue3Flags.filter((flag) => flag in flags && vue !== 3)
+  // --no-template is template: false, --template pug a language: only the language is Vue 3 only
+  const vue3Only = [...vue3Flags, 'template']
+    .filter((flag) => flag in flags && !(flag === 'template' && flags.template === false) && vue !== 3)
   if(vue3Only.length) {
     throw new Error(`${vue3Only.map((flag) => `--${flag}`).join(', ')}: Vue 3 only, this project uses Vue ${vue}`)
   }
@@ -153,7 +158,14 @@ function vuegOptions(cmd, args, vue) {
     }
     options.route = flags.route
   }
-  if(flags.template === false) options.noTemplate = true
+  if(flags.template === false) {
+    options.noTemplate = true
+  } else if('template' in flags) {
+    if(typeof flags.template !== 'string') {
+      throw new Error('--template needs a value: html or pug')
+    }
+    options.template = flags.template
+  }
   if(flags.script === false) options.noScript = true
   if('scoped' in flags) options.scoped = isTrue(flags.scoped)
   if('props' in flags) options.props = list('props', flags.props)
@@ -164,6 +176,8 @@ function vuegOptions(cmd, args, vue) {
   if(isTrue(flags.blank)) options.blank = true
   if(isTrue(flags.force)) options.force = true
   if(isTrue(flags['dry-run'])) options.dryRun = true
+  if(isTrue(flags.test)) options.test = true
+  if(isTrue(flags.story)) options.story = true
 
   return { options, relativeName: rest[0] }
 }
@@ -227,8 +241,8 @@ async function generate(api, cmd, args) {
         throw err
       }
 
-      // Ask before overwriting an existing component
-      console.warn(`Component ${name} exists!`)
+      // Ask before overwriting an existing component, or its existing test or story (err.file, vuegc 2.1)
+      console.warn(err.file ? `${err.file} exists!` : `Component ${name} exists!`)
 
       const { override } = await prompts([{
         type: 'confirm',
