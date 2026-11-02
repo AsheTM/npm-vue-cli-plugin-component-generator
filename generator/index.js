@@ -22,7 +22,10 @@ module.exports = (api, options) => {
       'generate:component': `vue-cli-service generate:component${componentPath}${common}`,
       'g:c': 'npm run generate:component --',
       'generate:view': `vue-cli-service generate:view${common}`,
-      'g:v': 'npm run generate:view --'
+      'g:v': 'npm run generate:view --',
+      // A service has no style: --ts may come last, the command reads "--ts User" as --ts and the name
+      'generate:service': `vue-cli-service generate:service${ts ? ' --ts' : ''}`,
+      'g:s': 'npm run generate:service --'
     }
   })
 }
