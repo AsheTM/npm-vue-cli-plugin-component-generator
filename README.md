@@ -5,7 +5,7 @@
 [![CI](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/@ashetm/vue-cli-plugin-component-generator?style=flat-square)](LICENSE)
 
-[Vue CLI](https://cli.vuejs.org) plugin generating **single-file components**, and **views with their route**, in Vue 2 and Vue 3 projects.
+[Vue CLI](https://cli.vuejs.org) plugin generating **single-file components**, **views with their route** and **services** (API calls), in Vue 2 and Vue 3 projects.
 
 Generation relies on [vueg](https://github.com/AsheTM/npm-vueg) and [vuegc](https://github.com/AsheTM/npm-vuegc): same options, same files. Not a Vue CLI project (Vite, create-vue)? Use the `vueg` command directly.
 
@@ -30,16 +30,18 @@ The installation asks:
 - the style, `css` or one of the installed pre-processors: `scss` and `sass` with Sass, `less` with Less, `stylus` with Stylus. CSS when none is installed;
 - in a Vue 3 project with TypeScript, whether components are in TypeScript.
 
-It adds 4 scripts to your `package.json`, for example in a Vue 3 project with Sass and TypeScript:
+It adds 6 scripts to your `package.json`, for example in a Vue 3 project with Sass and TypeScript:
 
 ```json
 "generate:component": "vue-cli-service generate:component --ts --style scss",
 "g:c": "npm run generate:component --",
 "generate:view": "vue-cli-service generate:view --ts --style scss",
-"g:v": "npm run generate:view --"
+"g:v": "npm run generate:view --",
+"generate:service": "vue-cli-service generate:service --ts",
+"g:s": "npm run generate:service --"
 ```
 
-To change the answers later, run `vue invoke @ashetm/vue-cli-plugin-component-generator` again.
+To change the answers later, or to add the scripts of a newer version (`generate:service` came in 1.2.0), run `vue invoke @ashetm/vue-cli-plugin-component-generator` again.
 
 ## Components
 
@@ -139,9 +141,32 @@ const routes = [
 
 **Nothing is written if something is wrong**: no router, a route path or name already used, an invalid `--route`, or a view that already exists without `--force`. The message says what to do. To regenerate an existing view, its route usually exists too: use `--force --no-route`.
 
+## Services
+
+A service keeps the API calls out of the components: a module of functions using `fetch`. `generate:service` generates it in `src/services/`, with [vueg](https://github.com/AsheTM/npm-vueg#vueg-service), in Vue 2 and Vue 3 projects alike (it has no Vue code).
+
+```sh
+npm run generate:service User                     # src/services/user.service.js
+npm run g:s -- admin/UserProfile                  # src/services/admin/user-profile.service.js
+npm run g:s -- User --ts --test                   # user.service.ts and its Vitest test, user.service.spec.ts
+```
+
+`src/services/user.service.js` has a `request()` helper (JSON, throws on an HTTP error, `null` for 204 No Content) and `getAll`, `getById`, `create`, `update` and `remove` on `/api/user`. Change `BASE_URL` to your API, then use it in a component: `import { getAll } from '@/services/user.service'`.
+
+| Option | Description | Default |
+|---|---|---|
+| `--path` | Folder inside `src/` | `services` |
+| `--ts` | TypeScript: `user.service.ts`, functions typed with generics (`getAll<User>()`) | |
+| `--test` | Also write a [Vitest](https://vitest.dev) test next to it, stubbing `fetch`: `user.service.spec.js` | |
+| `--blank` | An empty module, without the API calls | |
+| `--force` | Overwrite the service (and its test) without asking | |
+| `--dry-run` | Print the service instead of writing it | |
+
+File names are in kebab-case; `User`, `user`, `user.service` and `user.service.js` all give `user.service.js`. An existing service or test is overwritten only after confirming. The component options (`--style`, `--props`…) are refused. `vue-cli-service help generate:service` lists the options.
+
 ## Options
 
-Both commands take the same options. The scripts added at installation already pass `--style` (and `--ts`, `--path`); add others after `--` with the shortcuts. Give one of the script's options again to change it for one run: `npm run g:c -- Card --style less`, `--ts false`.
+`generate:component` and `generate:view` take the same options. The scripts added at installation already pass `--style` (and `--ts`, `--path`); add others after `--` with the shortcuts. Give one of the script's options again to change it for one run: `npm run g:c -- Card --style less`, `--ts false`.
 
 | Option | Description | Default |
 |---|---|---|

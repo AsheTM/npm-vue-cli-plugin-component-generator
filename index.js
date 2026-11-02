@@ -35,10 +35,21 @@ const viewOptions = {
   '--dry-run': 'print the view and its route instead of writing them'
 }
 
+// Options of generate:service: a module of API calls, without Vue code, so the same in Vue 2 and Vue 3 projects
+const serviceOptions = {
+  '--path': 'folder inside src/ (Default: \'services\')',
+  '--ts': 'TypeScript: name.service.ts, typed functions',
+  '--test': 'also write a Vitest test next to it, name.service.spec.js',
+  '--blank': 'an empty module, without the API calls',
+  '--force': 'overwrite the service without asking',
+  '--dry-run': 'print the service instead of writing it'
+}
+
 // What each command generates, with which vueg function, where by default
 const commands = {
   'generate:component': { kind: 'component', options: componentOptions, folder: 'components', flags: [] },
-  'generate:view': { kind: 'view', options: viewOptions, folder: '', flags: ['route'] }
+  'generate:view': { kind: 'view', options: viewOptions, folder: '', flags: ['route'] },
+  'generate:service': { kind: 'service', options: serviceOptions, folder: 'services', only: ['path', 'ts', 'test', 'blank', 'force', 'dry-run'] }
 }
 
 // Flags without a value: minimist reads "--blank UserCard" as blank = 'UserCard'
@@ -53,11 +64,13 @@ const serviceFlags = ['modern', 'report', 'report-json', 'inline-vue', 'watch', 
 function validateName(relativeName, kind = 'component') {
   const parts = String(relativeName).split(/\\|\//).filter(Boolean)
   const name = parts[parts.length - 1]
+  // Card.vue, user.service.js: the extension vueg understands
+  const pattern = kind === 'service' ? /^[A-Za-z][\w-]*(\.service)?(\.[jt]s)?$/ : /^[A-Za-z][\w-]*(\.vue)?$/
 
   if(!name || !name.trim()) {
     return `A ${kind} name is required`
   }
-  if(!/^[A-Za-z][\w-]*(\.vue)?$/.test(name)) {
+  if(!pattern.test(name)) {
     return `Invalid ${kind} name "${name}": letters, digits, - and _ only, starting with a letter`
   }
   if(parts.some((part) => part === '.' || part === '..')) {
@@ -121,13 +134,14 @@ function vuegOptions(cmd, args, vue) {
   }
 
   // --no-template is template: false, --template pug a language: only the language is Vue 3 only
+  const { flags: commandFlags = [], only } = commands[cmd]
   const vue3Only = [...vue3Flags, 'template']
-    .filter((flag) => flag in flags && !(flag === 'template' && flags.template === false) && vue !== 3)
+    .filter((flag) => !only && flag in flags && !(flag === 'template' && flags.template === false) && vue !== 3)
   if(vue3Only.length) {
     throw new Error(`${vue3Only.map((flag) => `--${flag}`).join(', ')}: Vue 3 only, this project uses Vue ${vue}`)
   }
 
-  const known = ['path', 'style', 'props', 'template', 'script', ...booleanFlags, ...vue3Flags, ...commands[cmd].flags]
+  const known = only ?? ['path', 'style', 'props', 'template', 'script', ...booleanFlags, ...vue3Flags, ...commandFlags]
   const unknown = Object.keys(flags).filter((flag) => !known.includes(flag))
   if(unknown.length) {
     throw new Error(`Unknown option ${unknown.map((flag) => `--${flag}`).join(', ')}, see "vue-cli-service help ${cmd}"`)
@@ -138,7 +152,7 @@ function vuegOptions(cmd, args, vue) {
 
   if('path' in flags) {
     if(typeof flags.path !== 'string') {
-      throw new Error(`--path needs a folder inside src/${commands[cmd].kind === 'view' ? 'views/' : ''}, e.g. --path admin`)
+      throw new Error(`--path needs a folder inside src/${commands[cmd].kind === 'view' ? 'views/' : ''}, e.g. --path ${commands[cmd].kind === 'service' ? 'api' : 'admin'}`)
     }
     options.path = flags.path
   }
@@ -182,7 +196,7 @@ function vuegOptions(cmd, args, vue) {
   return { options, relativeName: rest[0] }
 }
 
-// Generate a component or a view with vueg; errors are printed, with exit code 1
+// Generate a component, a view or a service with vueg; errors are printed, with exit code 1
 async function generate(api, cmd, args) {
   const { kind, folder } = commands[cmd]
   const pkg = api.service.pkg || {}
@@ -190,7 +204,8 @@ async function generate(api, cmd, args) {
   let vueg
 
   try {
-    const vue = vueVersion(context, pkg)
+    // A service has no Vue code: vueg 2 generates it in Vue 2 projects too
+    const vue = kind === 'service' ? 3 : vueVersion(context, pkg)
     if(!vuegPackages[vue]) {
       throw new Error(`Vue ${vue} is not supported: Vue 2 and Vue 3 only`)
     }
@@ -220,7 +235,8 @@ async function generate(api, cmd, args) {
     }
 
     const parts = String(relativeName).split(/\\|\//).filter(Boolean)
-    const name = pascalCase(parts.pop())
+    // vueg names the service's file in kebab-case (user-profile.service.js), the components in PascalCase
+    const name = kind === 'service' ? parts.pop() : pascalCase(parts.pop())
     const generated = {
       ...options,
       name,
@@ -234,14 +250,15 @@ async function generate(api, cmd, args) {
       return
     }
 
+    const write = kind === 'service' ? vueg.service : vueg.component
     try {
-      vueg.component(generated)
+      write(generated)
     } catch (err) {
       if(err?.code !== 'EEXIST' || generated.dryRun) {
         throw err
       }
 
-      // Ask before overwriting an existing component, or its existing test or story (err.file, vuegc 2.1)
+      // Ask before overwriting an existing component or service, or its existing test or story (err.file, vuegc 2.1)
       console.warn(err.file ? `${err.file} exists!` : `Component ${name} exists!`)
 
       const { override } = await prompts([{
@@ -252,7 +269,7 @@ async function generate(api, cmd, args) {
       }])
 
       if(override) {
-        vueg.component({ ...generated, force: true })
+        write({ ...generated, force: true })
       }
     }
   } catch (err) {
@@ -283,4 +300,13 @@ module.exports = api => {
       options: viewOptions
     },
     (args) => generate(api, 'generate:view', args))
+
+  api.registerCommand(
+    'generate:service',
+    {
+      description: 'Generate a service, a module of API calls with fetch, in src/services/ with vueg',
+      usage: 'vue-cli-service generate:service [options] [name]',
+      options: serviceOptions
+    },
+    (args) => generate(api, 'generate:service', args))
 }

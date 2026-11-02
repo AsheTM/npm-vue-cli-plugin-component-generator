@@ -20,14 +20,16 @@ function commandArgs(script) {
 }
 
 describe('vue add generator', () => {
-  it('adds the scripts of generate:component and generate:view, and their shortcuts', () => {
+  it('adds the scripts of generate:component, generate:view and generate:service, and their shortcuts', () => {
     const [{ scripts }] = runGenerator({ path: 'components', style: 'scss', ts: true })
 
     expect(scripts).to.deep.equal({
       'generate:component': 'vue-cli-service generate:component --ts --style scss',
       'g:c': 'npm run generate:component --',
       'generate:view': 'vue-cli-service generate:view --ts --style scss',
-      'g:v': 'npm run generate:view --'
+      'g:v': 'npm run generate:view --',
+      'generate:service': 'vue-cli-service generate:service --ts',
+      'g:s': 'npm run generate:service --'
     })
   })
 
@@ -43,6 +45,7 @@ describe('vue add generator', () => {
 
     expect(scripts['generate:component']).to.equal('vue-cli-service generate:component --style css')
     expect(scripts['generate:view']).to.equal('vue-cli-service generate:view --style css')
+    expect(scripts['generate:service']).to.equal('vue-cli-service generate:service')
   })
 
   it('uses JavaScript when TypeScript is declined', () => {
@@ -64,10 +67,11 @@ describe('vue add generator', () => {
 
       expect(scripts['generate:component']).to.equal(`vue-cli-service generate:component${option} --style css`)
       expect(scripts['generate:view']).to.equal('vue-cli-service generate:view --style css')
+      expect(scripts['generate:service']).to.equal('vue-cli-service generate:service')
     })
   }
 
-  for (const [shortcut, script] of [['g:c', 'generate:component'], ['g:v', 'generate:view']]) {
+  for (const [shortcut, script] of [['g:c', 'generate:component'], ['g:v', 'generate:view'], ['g:s', 'generate:service']]) {
     it(`passes everything after -- on to ${script} through npm run ${shortcut}`, () => {
       const [{ scripts }] = runGenerator({ path: 'components', style: 'css' })
       // The shortcut, and the command replaced by a script printing its arguments (npm run puts node in the PATH)
@@ -94,12 +98,12 @@ describe('vue add generator', () => {
     ]
 
     for (const { label, vue, answers, component, style, script } of cases) {
-      it(`generates the component and the view: ${label}`, async () => {
+      it(`generates the component, the view and the service: ${label}`, async () => {
         const [{ scripts }] = runGenerator(answers)
         const dir = createVueProject(vue)
         addRouter(dir, vue)
 
-        for (const [script, name] of [['generate:component', 'Card'], ['generate:view', 'Contact']]) {
+        for (const [script, name] of [['generate:component', 'Card'], ['generate:view', 'Contact'], ['generate:service', 'User']]) {
           const { name: command, args } = commandArgs(`${scripts[script]} ${name}`)
           expect(command).to.equal(script)
           const { output, exitCode } = await runCommand(dir, args, [], { name: command })
@@ -110,6 +114,7 @@ describe('vue add generator', () => {
         const files = readTree(dir)
         expect(files[component]).to.include(style).and.match(script)
         expect(files['src/views/Contact.vue']).to.include(style).and.match(script)
+        expect(files[answers.ts ? 'src/services/user.service.ts' : 'src/services/user.service.js']).to.include('const BASE_URL = "/api/user"')
       })
     }
 
@@ -122,6 +127,20 @@ describe('vue add generator', () => {
 
       expect(output.error).to.deep.equal([])
       expect(readTree(dir)['src/widgets/Card.vue']).to.include('<style lang="less" scoped>').and.match(/<script setup>/)
+    })
+
+    it('reads the name after --ts as the name of the service', async () => {
+      const [{ scripts }] = runGenerator({ path: 'components', style: 'css', ts: true })
+      const dir = createVueProject()
+
+      for (const extra of ['User', 'User --ts false']) {
+        const { args } = commandArgs(`${scripts['generate:service']} ${extra} --force`)
+        const { output } = await runCommand(dir, args, [], { name: 'generate:service' })
+        expect(output.error).to.deep.equal([])
+      }
+
+      expect(Object.keys(readTree(dir)).filter((file) => file.startsWith('src/services/')).sort())
+        .to.deep.equal(['src/services/user.service.js', 'src/services/user.service.ts'])
     })
   })
 })

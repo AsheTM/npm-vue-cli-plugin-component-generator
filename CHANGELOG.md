@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-02
+
+Services, the API calls of the project, with `generate:service` on vueg 2.3, in Vue 2 and Vue 3 projects.
+
+### Added
+- `generate:service [name]`: a service in `src/services/`, a module of API calls with `fetch` (`getAll`, `getById`, `create`, `update`, `remove` on `/api/<name>`), like `vueg service`, with `--path`, `--ts`, `--test` (a Vitest test), `--blank`, `--force` and `--dry-run`. The service has no Vue code: it works the same in Vue 2 and Vue 3 projects. File names in kebab-case (`UserProfile` → `user-profile.service.js`); an existing service or test is overwritten only after confirming. `vue add` adds the `generate:service` and `g:s` scripts (`--ts` from the TypeScript answer); in an installed project, `vue invoke @ashetm/vue-cli-plugin-component-generator` adds them ([#63](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/63)).
+
+### Changed
+- vueg `^2.3.0`, which has `service()` ([#63](https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/issues/63)).
+
 ## [1.1.0] - 2026-11-02
 
 A test, a story and a Pug template with components and views in Vue 3 projects, on vueg 2.2: `--test`, `--story`, `--template pug`.
@@ -79,7 +89,8 @@ First release.
 - `vue add @ashetm/vue-cli-plugin-component-generator` asks for the components root directory, the script language (when TypeScript is installed) and the style language (when Sass is installed), and adds the `generate:component` and `g:c` scripts to the project.
 - `generate:component` asks for the component name and generates 4 files in its own folder: the `.vue` file and its separate template (`.html`), script (`.js` or `.ts`) and style (`.css`, `.scss` or `.sass`).
 
-[Unreleased]: https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/compare/v1.1.0...develop
+[Unreleased]: https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/compare/v1.2.0...develop
+[1.2.0]: https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/AsheTM/npm-vue-cli-plugin-component-generator/compare/13fce9b...v0.2.0
