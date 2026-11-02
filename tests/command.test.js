@@ -32,7 +32,7 @@ describe('generate:component', () => {
     expect(command.options.usage).to.equal('vue-cli-service generate:component [options] [name]')
     expect(Object.keys(command.options.options)).to.deep.equal([
       '--path', '--style', '--scoped', '--module', '--props', '--emits', '--ts', '--options',
-      '--blank', '--no-template', '--force', '--dry-run'
+      '--template', '--test', '--story', '--blank', '--no-template', '--force', '--dry-run'
     ])
   })
 
@@ -185,9 +185,13 @@ describe('generate:component', () => {
       { label: 'Vue 3: --ts, --options, --blank', vue: 3,
         args: { ts: true, options: true, blank: true },
         options: { ts: true, optionsApi: true, blank: true } },
+      // Without the template, vueg 2 needs something in <script setup> (vuegc 2.1)
       { label: 'Vue 3: --module, --no-template', vue: 3,
-        args: { module: true, template: false },
-        options: { cssModule: true, noTemplate: true } },
+        args: { module: true, template: false, props: 'title' },
+        options: { cssModule: true, noTemplate: true, props: ['title'] } },
+      { label: 'Vue 3: --template pug', vue: 3,
+        args: { template: 'pug', blank: true },
+        options: { template: 'pug', blank: true } },
       { label: 'Vue 3: --no-script, --no-scoped', vue: 3,
         args: { script: false, scoped: false },
         options: { noScript: true, scoped: false } },
@@ -290,6 +294,47 @@ describe('generate:component', () => {
       expect(exitCode).to.equal(1)
       expect(generated(dir)).to.deep.equal([])
     })
+
+    it('refuses --test, --story and --template in a Vue 2 project, but not --no-template', async () => {
+      const dir = createVueProject(2)
+      const refused = await runCommand(dir, { _: ['Card'], test: true, story: true, template: 'pug' })
+
+      expect(refused.output.error).to.deep.equal(['--test, --story, --template: Vue 3 only, this project uses Vue 2'])
+      expect(refused.exitCode).to.equal(1)
+      expect(generated(dir)).to.deep.equal([])
+
+      const { exitCode } = await runCommand(dir, { _: ['Card'], template: false })
+      expect(exitCode).to.equal(undefined)
+      expect(generated(dir)).to.deep.equal(['src/components/Card.vue'])
+    })
+
+    it('writes the test and the story next to the component', async () => {
+      const dir = createVueProject(3)
+      const { exitCode } = await runCommand(dir, { _: ['admin/user-card'], test: true, story: true, ts: true, props: 'title' })
+
+      expect(exitCode).to.equal(undefined)
+      expect(generated(dir)).to.deep.equal([
+        'src/components/admin/UserCard.spec.ts', 'src/components/admin/UserCard.stories.ts', 'src/components/admin/UserCard.vue'
+      ])
+      expect(read(dir, 'src/components/admin/UserCard.spec.ts')).to.contain('mount(UserCard, { props: { title: "title" } })')
+      expect(read(dir, 'src/components/admin/UserCard.stories.ts')).to.contain('satisfies Meta<typeof UserCard>')
+    })
+
+    it('takes the name after --test or --story, not as their value', async () => {
+      const dir = createVueProject(3)
+      await runCommand(dir, { _: [], test: 'Card', story: true })
+
+      expect(generated(dir)).to.deep.equal(['src/components/Card.spec.js', 'src/components/Card.stories.js', 'src/components/Card.vue'])
+    })
+
+    it('refuses --template without a value', async () => {
+      const dir = createVueProject(3)
+      const { output, exitCode } = await runCommand(dir, { _: ['Card'], template: true })
+
+      expect(output.error).to.deep.equal(['--template needs a value: html or pug'])
+      expect(exitCode).to.equal(1)
+      expect(generated(dir)).to.deep.equal([])
+    })
   })
 
   describe('existing component', () => {
@@ -335,6 +380,21 @@ describe('generate:component', () => {
       expect(output.error).to.deep.equal(['Component already exists, use --force to overwrite it'])
       expect(exitCode).to.equal(1)
       expect(read(dir, 'src/components/Card.vue')).to.equal('edited')
+    })
+
+    // Only the test exists: the question names it (vuegc 2.1's EEXIST has the file)
+    it('names an existing test, and overwrites it when confirmed', async () => {
+      const dir = createVueProject()
+      fs.mkdirSync(path.join(dir, 'src', 'components'), { recursive: true })
+      fs.writeFileSync(path.join(dir, 'src', 'components', 'Card.spec.js'), 'my own test')
+
+      const refused = await runCommand(dir, { _: ['Card'], test: true }, [false])
+      expect(refused.output.warn).to.deep.equal(['src/components/Card.spec.js exists!'])
+      expect(generated(dir)).to.deep.equal(['src/components/Card.spec.js'])
+
+      await runCommand(dir, { _: ['Card'], test: true }, [true])
+      expect(read(dir, 'src/components/Card.spec.js')).to.contain('mount(Card)')
+      expect(generated(dir)).to.deep.equal(['src/components/Card.spec.js', 'src/components/Card.vue'])
     })
   })
 
